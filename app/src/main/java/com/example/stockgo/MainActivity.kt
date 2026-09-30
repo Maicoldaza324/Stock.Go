@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stockgo.ui.theme.StockGoTheme
 import androidx.compose.material3.AlertDialog
+import com.example.stockgo.Model.Producto
+import com.example.stockgo.Screens.LoginScreen
+import com.example.stockgo.Screens.DashboardScreen
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
@@ -44,8 +47,53 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             StockGoTheme {
+
+                val productos = remember {
+                    mutableStateListOf(
+                        Producto(
+                            "PROD-001",
+                            "Mouse inalámbrico Logitech",
+                            "Accesorios",
+                            3,
+                            10
+                        ),
+                        Producto(
+                            "PROD-002",
+                            "Resma papel A4 75g",
+                            "Papelería",
+                            0,
+                            20
+                        ),
+                        Producto(
+                            "PROD-003",
+                            "Tóner HP LaserJet 85A",
+                            "Impresión",
+                            2,
+                            5
+                        ),
+                        Producto(
+                            "PROD-004",
+                            "Teclado USB Logitech",
+                            "Accesorios",
+                            25,
+                            5
+                        ),
+                        Producto(
+                            "PROD-005",
+                            "Cuaderno universitario",
+                            "Papelería",
+                            40,
+                            10
+                        )
+                    )
+                }
+
                 var mostrarDashboard by remember {
                     mutableStateOf(false)
+                }
+
+                var pantallaActual by remember {
+                    mutableStateOf("Inicio")
                 }
 
                 Surface(
@@ -53,12 +101,25 @@ class MainActivity : ComponentActivity() {
                     color = FondoStock
                 ) {
                     if (mostrarDashboard) {
-                        var pantallaActual by remember {
-                            mutableStateOf("Inicio")
-                        }
-
                         when (pantallaActual) {
-                            "Productos" -> ProductsScreen()
+                            "Productos" -> ProductsScreen(
+                                productos = productos
+                            )
+
+                            "Inicio" -> DashboardScreen(
+                                onNavigate = { pantalla ->
+                                    pantallaActual = pantalla
+                                }
+                            )
+
+                            "Entradas", "Salidas", "Reportes", "Más" ->
+                                ModulePlaceholderScreen(
+                                    titulo = pantallaActual,
+                                    onVolver = {
+                                        pantallaActual = "Inicio"
+                                    }
+                                )
+
                             else -> DashboardScreen(
                                 onNavigate = { pantalla ->
                                     pantallaActual = pantalla
@@ -72,223 +133,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun LoginScreen(onLoginSuccess: () -> Unit) {
-        var correo by remember { mutableStateOf("") }
-        var contrasena by remember { mutableStateOf("") }
-        var mostrarContrasena by remember { mutableStateOf(false) }
-        var mensaje by remember { mutableStateOf("") }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(FondoStock)
-                .verticalScroll(rememberScrollState())
-                .imePadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Encabezado azul
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(290.dp)
-                    .background(AzulStock)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .background(
-                            Color.White.copy(alpha = 0.15f),
-                            RoundedCornerShape(24.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "▦",
-                        fontSize = 58.sp,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Text(
-                    text = "Stock.Go",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Sistema de Gestión de Inventarios",
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            // Formulario de inicio de sesión
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .offset(y = (-38).dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 4.dp
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    Text(
-                        text = "Bienvenido de nuevo",
-                        fontSize = 27.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF202536)
-                    )
-
-                    Text(
-                        text = "Ingresa tus credenciales para continuar",
-                        fontSize = 15.sp,
-                        color = Color(0xFF858B98)
-                    )
-
-                    // Correo electrónico
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Correo electrónico",
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF202536)
-                        )
-
-                        OutlinedTextField(
-                            value = correo,
-                            onValueChange = {
-                                correo = it
-                                mensaje = ""
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text("admin@empresa.com")
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email
-                            )
-                        )
-                    }
-
-                    // Contraseña
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Contraseña",
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF202536)
-                        )
-
-                        OutlinedTextField(
-                            value = contrasena,
-                            onValueChange = {
-                                contrasena = it
-                                mensaje = ""
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text("Ingresa tu contraseña")
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            visualTransformation = if (mostrarContrasena) {
-                                VisualTransformation.None
-                            } else {
-                                PasswordVisualTransformation()
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Password
-                            ),
-                            trailingIcon = {
-                                TextButton(
-                                    onClick = {
-                                        mostrarContrasena = !mostrarContrasena
-                                    }
-                                ) {
-                                    Text(
-                                        if (mostrarContrasena) "Ocultar"
-                                        else "Mostrar",
-                                        color = AzulStock
-                                    )
-                                }
-                            }
-                        )
-                    }
-
-                    // Recuperar contraseña
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        TextButton(
-                            onClick = {
-                                mensaje =
-                                    "La recuperación de contraseña se implementará posteriormente."
-                            }
-                        ) {
-                            Text(
-                                text = "¿Olvidaste tu contraseña?",
-                                color = AzulStock
-                            )
-                        }
-                    }
-
-                    // Botón de inicio de sesión
-                    Button(
-                        onClick = {
-                            if (correo.isBlank() || contrasena.isBlank()) {
-                                mensaje = "Ingresa tu correo y contraseña."
-                            } else {
-                                mensaje = ""
-                                onLoginSuccess()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF465DE0)
-                        )
-                    ) {
-                        Text(
-                            text = "Iniciar sesión",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    if (mensaje.isNotBlank()) {
-                        Text(
-                            text = mensaje,
-                            color = AzulStock,
-                            fontSize = 13.sp
-                        )
                     }
                 }
             }
@@ -296,306 +140,10 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun DashboardScreen(
-        onNavigate: (String) -> Unit
+    fun ProductsScreen(
+        productos: androidx.compose.runtime.snapshots.SnapshotStateList<Producto>
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(FondoStock)
-        ) {
-            // Encabezado
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        AzulStock,
-                        RoundedCornerShape(
-                            bottomStart = 24.dp,
-                            bottomEnd = 24.dp
-                        )
-                    )
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = "Buenos días 👋",
-                    fontSize = 18.sp,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Stock.Go",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            // Contenido del Dashboard
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Tarjetas de estadísticas
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        titulo = "Total productos",
-                        valor = "124",
-                        color = AzulStock,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    StatCard(
-                        titulo = "Disponibles",
-                        valor = "98",
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        titulo = "Bajo stock",
-                        valor = "18",
-                        color = Color(0xFFE5A323),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    StatCard(
-                        titulo = "Agotados",
-                        valor = "8",
-                        color = Color(0xFFC33B3B),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // Alertas
-                Text(
-                    text = "⚠ Atención requerida",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF202536)
-                )
-
-                ProductAlert(
-                    nombre = "Mouse inalámbrico Logitech",
-                    detalle = "Stock: 3 · Mínimo: 10",
-                    estado = "Bajo stock",
-                    color = Color(0xFFE5A323)
-                )
-
-                ProductAlert(
-                    nombre = "Resma papel A4 75g",
-                    detalle = "Stock: 0 · Mínimo: 20",
-                    estado = "Agotado",
-                    color = Color(0xFFC33B3B)
-                )
-
-                ProductAlert(
-                    nombre = "Tóner HP LaserJet 85A",
-                    detalle = "Stock: 2 · Mínimo: 5",
-                    estado = "Bajo stock",
-                    color = Color(0xFFE5A323)
-                )
-
-                // Acciones rápidas
-                Text(
-                    text = "Acciones rápidas",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF202536)
-                )
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = {},
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE7F5E9),
-                            contentColor = Color(0xFF388E3C)
-                        )
-                    ) {
-                        Text("↑ Entrada")
-                    }
-
-                    Button(
-                        onClick = {},
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFBE9E7),
-                            contentColor = Color(0xFFC33B3B)
-                        )
-                    ) {
-                        Text("↓ Salida")
-                    }
-                }
-            }
-
-            // Barra de navegación inferior
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val opciones = listOf(
-                    "Inicio",
-                    "Productos",
-                    "Entradas",
-                    "Salidas",
-                    "Reportes",
-                    "Más"
-                )
-
-                opciones.forEach { opcion ->
-                    TextButton(
-                        onClick = {
-                            onNavigate(opcion)
-                        },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(
-                            horizontal = 2.dp,
-                            vertical = 4.dp
-                        )
-                    ) {
-                        Text(
-                            text = opcion,
-                            fontSize = 10.sp,
-                            textAlign = TextAlign.Center,
-                            color = if (opcion == "Inicio") {
-                                AzulStock
-                            } else {
-                                Color(0xFF858B98)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    @Composable
-    fun StatCard(
-        titulo: String,
-        valor: String,
-        color: Color,
-        modifier: Modifier = Modifier
-    ) {
-        Card(
-            modifier = modifier,
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = valor,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-
-                Text(
-                    text = titulo,
-                    fontSize = 14.sp,
-                    color = Color(0xFF596273)
-                )
-            }
-        }
-    }
-
-    @Composable
-    fun ProductAlert(
-        nombre: String,
-        detalle: String,
-        estado: String,
-        color: Color
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 2.dp
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = nombre,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF202536)
-                    )
-
-                    Text(
-                        text = detalle,
-                        fontSize = 13.sp,
-                        color = Color(0xFF858B98)
-                    )
-                }
-
-                Text(
-                    text = estado,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-            }
-        }
-    }
-}
-
-data class Producto(
-    val codigo: String,
-    val nombre: String,
-    val categoria: String,
-    val stock: Int,
-    val stockMinimo: Int
-)
-
-@Composable
-fun ProductsScreen() {
-    val productos = remember {
-        mutableStateListOf(
-            Producto("PROD-001", "Mouse inalámbrico Logitech", "Accesorios", 3, 10),
-            Producto("PROD-002", "Resma papel A4 75g", "Papelería", 0, 20),
-            Producto("PROD-003", "Tóner HP LaserJet 85A", "Impresión", 2, 5),
-            Producto("PROD-004", "Teclado USB Logitech", "Accesorios", 25, 5),
-            Producto("PROD-005", "Cuaderno universitario", "Papelería", 40, 10)
-        )
-    }
 
     var busqueda by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf("Todos") }
@@ -929,4 +477,45 @@ fun AddProductDialog(
             }
         }
     )
+}
+@Composable
+fun ModulePlaceholderScreen(
+    titulo: String,
+    onVolver: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FondoStock)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = titulo,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = AzulStock
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Este módulo se implementará próximamente.",
+            fontSize = 16.sp,
+            color = Color(0xFF596273),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onVolver,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AzulStock
+            )
+        ) {
+            Text("Volver al inicio")
+        }
+    }
 }
