@@ -27,11 +27,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.example.stockgo.Components.AddProductDialog
 import com.example.stockgo.Components.ProductItem
 import com.example.stockgo.Model.Producto
-
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Icon
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
 
@@ -220,11 +229,10 @@ fun ProductsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             val opciones = listOf(
                 "Inicio",
                 "Productos",
@@ -236,6 +244,17 @@ fun ProductsScreen(
 
             opciones.forEach { opcion ->
 
+                val icono = when (opcion) {
+                    "Inicio" -> Icons.Filled.Home
+                    "Productos" -> Icons.Filled.Inventory
+                    "Entradas" -> Icons.Filled.TrendingUp
+                    "Salidas" -> Icons.Filled.TrendingDown
+                    "Reportes" -> Icons.Filled.Assessment
+                    else -> Icons.Filled.MoreHoriz
+                }
+
+                val seleccionado = opcion == "Productos"
+
                 TextButton(
                     onClick = {
                         onNavigate(opcion)
@@ -246,17 +265,31 @@ fun ProductsScreen(
                         vertical = 4.dp
                     )
                 ) {
-
-                    Text(
-                        text = opcion,
-                        fontSize = 10.sp,
-                        color =
-                            if (opcion == "Productos") {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = icono,
+                            contentDescription = opcion,
+                            modifier = Modifier.size(22.dp),
+                            tint = if (seleccionado) {
                                 AzulStock
                             } else {
                                 Color(0xFF858B98)
                             }
-                    )
+                        )
+
+                        Text(
+                            text = opcion,
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            color = if (seleccionado) {
+                                AzulStock
+                            } else {
+                                Color(0xFF858B98)
+                            }
+                        )
+                    }
                 }
             }
         }
