@@ -1,4 +1,4 @@
-package com.example.stockgo // VERIFICA Y CAMBIA ESTO POR TU PAQUETE REAL
+package Screens // VERIFICA Y CAMBIA ESTO POR TU PAQUETE REAL
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
