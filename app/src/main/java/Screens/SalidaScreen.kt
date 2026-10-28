@@ -1,272 +1,273 @@
-package Screens // VERIFICA Y CAMBIA ESTO POR TU PAQUETE REAL
+package com.example.stockgo.Screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.stockgo.Model.MovimientoInventario
+import com.example.stockgo.Model.Producto
+import com.example.stockgo.Model.TipoMovimiento
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SalidaScreen(
-    onBackClick: () -> Unit = {},
-    onRegistrarClick: () -> Unit = {}
+fun SalidasScreen(
+    productos: SnapshotStateList<Producto>,
+    movimientos: SnapshotStateList<MovimientoInventario>,
+    onNavigate: (String) -> Unit
 ) {
-    // Colores según Figma para Salida
-    val darkBlue = Color(0xFF2C365E)
-    val lightRedBg = Color(0xFFFBE9E7)
-    val iconRedBg = Color(0xFFEF5350)
-    val buttonRed = Color(0xFFC62828)
+    var productoSeleccionado by remember {
+        mutableStateOf<Producto?>(null)
+    }
+    var cantidad by remember { mutableStateOf("") }
+    var motivo by remember { mutableStateOf("Venta") }
+    var observaciones by remember { mutableStateOf("") }
+    var menuProductosAbierto by remember { mutableStateOf(false) }
+    var menuMotivosAbierto by remember { mutableStateOf(false) }
+    var mensaje by remember { mutableStateOf("") }
+    var registroExitoso by remember { mutableStateOf(false) }
 
-    // Estados del formulario
-    var productoSeleccionado by remember { mutableStateOf("") }
-    var expandedProducto by remember { mutableStateOf(false) }
-    val productosLista = listOf("Producto A", "Producto B", "Producto C")
+    val motivos = listOf(
+        "Venta",
+        "Uso interno",
+        "Dañado / Expirado",
+        "Otro"
+    )
 
-    var motivoSeleccionado by remember { mutableStateOf("Uso interno") }
-    var expandedMotivo by remember { mutableStateOf(false) }
-    val motivosLista = listOf("Uso interno", "Venta", "Dañado / Expirado", "Otro")
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Registrar salida",
+            color = Color(0xFF2C365E),
+            style = MaterialTheme.typography.headlineMedium
+        )
 
-    var cantidad by remember { mutableStateOf("0") }
-    var fecha by remember { mutableStateOf("") }
-    var observacion by remember { mutableStateOf("") }
+        Text("Registra las unidades que salen del inventario.")
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Registrar salida",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = darkBlue)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFFBE9E7)
             )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Button(
-                    onClick = onRegistrarClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonRed),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Registrar salida",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Salida de inventario",
+                    color = Color(0xFFC62828),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text("El stock del producto disminuirá.")
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+
+        Text("Producto")
+
+        Button(
+            onClick = { menuProductosAbierto = true },
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Tarjeta informativa Roja
-            Card(
-                colors = CardDefaults.cardColors(containerColor = lightRedBg),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(iconRedBg, RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = "Salida de inventario",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color(0xFFC62828)
-                        )
-                        Text(
-                            text = "El stock del producto disminuirá",
-                            fontSize = 13.sp,
-                            color = Color.Gray
-                        )
-                    }
-                }
-            }
+            Text(
+                productoSeleccionado?.let {
+                    "${it.codigo} - ${it.nombre}"
+                } ?: "Seleccionar producto"
+            )
+        }
 
-            // Tarjeta del Formulario
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Producto (Dropdown)
-                    Text("Producto", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Box {
-                        OutlinedTextField(
-                            value = productoSeleccionado,
-                            onValueChange = {},
-                            readOnly = true,
-                            placeholder = { Text("Seleccionar producto...") },
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { expandedProducto = true },
-                            enabled = false,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = Color.LightGray,
-                                disabledPlaceholderColor = Color.Gray
-                            )
+        DropdownMenu(
+            expanded = menuProductosAbierto,
+            onDismissRequest = { menuProductosAbierto = false }
+        ) {
+            productos.forEach { producto ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "${producto.codigo} - ${producto.nombre} " +
+                                    "(Stock: ${producto.stock})"
                         )
-                        DropdownMenu(
-                            expanded = expandedProducto,
-                            onDismissRequest = { expandedProducto = false }
-                        ) {
-                            productosLista.forEach { prod ->
-                                DropdownMenuItem(
-                                    text = { Text(prod) },
-                                    onClick = {
-                                        productoSeleccionado = prod
-                                        expandedProducto = false
-                                    }
+                    },
+                    onClick = {
+                        productoSeleccionado = producto
+                        menuProductosAbierto = false
+                        mensaje = ""
+                    }
+                )
+            }
+        }
+
+        if (productos.isEmpty()) {
+            Text(
+                text = "No hay productos registrados. Primero agrega productos.",
+                color = Color(0xFFB3261E)
+            )
+        }
+
+        productoSeleccionado?.let {
+            Text("Stock disponible: ${it.stock} unidades")
+        }
+
+        OutlinedTextField(
+            value = cantidad,
+            onValueChange = { valor ->
+                if (valor.all { it.isDigit() } && valor.length <= 7) {
+                    cantidad = valor
+                    mensaje = ""
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Cantidad que sale") },
+            placeholder = { Text("Ej. 5") },
+            singleLine = true
+        )
+
+        Text("Motivo")
+
+        Button(
+            onClick = { menuMotivosAbierto = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(motivo)
+        }
+
+        DropdownMenu(
+            expanded = menuMotivosAbierto,
+            onDismissRequest = { menuMotivosAbierto = false }
+        ) {
+            motivos.forEach { opcion ->
+                DropdownMenuItem(
+                    text = { Text(opcion) },
+                    onClick = {
+                        motivo = opcion
+                        menuMotivosAbierto = false
+                    }
+                )
+            }
+        }
+
+        OutlinedTextField(
+            value = observaciones,
+            onValueChange = { observaciones = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Observaciones (opcional)") },
+            placeholder = { Text("Notas adicionales...") }
+        )
+
+        Button(
+            onClick = {
+                val producto = productoSeleccionado
+                val unidades = cantidad.toIntOrNull()
+
+                when {
+                    producto == null -> {
+                        mensaje = "Selecciona un producto."
+                        registroExitoso = false
+                    }
+
+                    unidades == null || unidades <= 0 -> {
+                        mensaje = "Ingresa una cantidad mayor que cero."
+                        registroExitoso = false
+                    }
+
+                    unidades > producto.stock -> {
+                        mensaje = "No hay existencias suficientes."
+                        registroExitoso = false
+                    }
+
+                    else -> {
+                        val indice = productos.indexOfFirst {
+                            it.codigo == producto.codigo
+                        }
+
+                        if (indice == -1) {
+                            mensaje = "El producto ya no está disponible."
+                            registroExitoso = false
+                        } else {
+                            val productoActual = productos[indice]
+
+                            if (unidades > productoActual.stock) {
+                                mensaje = "No hay existencias suficientes."
+                                registroExitoso = false
+                            } else {
+                                productos[indice] = productoActual.copy(
+                                    stock = productoActual.stock - unidades
                                 )
+
+                                movimientos.add(
+                                    MovimientoInventario(
+                                        id = "MOV-${(movimientos.size + 1)
+                                            .toString().padStart(3, '0')}",
+                                        codigoProducto = productoActual.codigo,
+                                        nombreProducto = productoActual.nombre,
+                                        tipo = TipoMovimiento.SALIDA,
+                                        cantidad = unidades,
+                                        fecha = System.currentTimeMillis(),
+                                        observaciones = "Motivo: $motivo" +
+                                                if (observaciones.isBlank()) {
+                                                    ""
+                                                } else {
+                                                    " - ${observaciones.trim()}"
+                                                }
+                                    )
+                                )
+
+                                mensaje = "Salida registrada correctamente."
+                                registroExitoso = true
+                                cantidad = ""
+                                observaciones = ""
+                                productoSeleccionado = null
                             }
                         }
                     }
-
-                    // Cantidad
-                    Text("Cantidad", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = cantidad,
-                        onValueChange = { cantidad = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-
-                    // Motivo (Dropdown)
-                    Text("Motivo", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Box {
-                        OutlinedTextField(
-                            value = motivoSeleccionado,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { expandedMotivo = true },
-                            enabled = false,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = Color.LightGray
-                            )
-                        )
-                        DropdownMenu(
-                            expanded = expandedMotivo,
-                            onDismissRequest = { expandedMotivo = false }
-                        ) {
-                            motivosLista.forEach { mot ->
-                                DropdownMenuItem(
-                                    text = { Text(mot) },
-                                    onClick = {
-                                        motivoSeleccionado = mot
-                                        expandedMotivo = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Fecha
-                    Text("Fecha", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = fecha,
-                        onValueChange = { fecha = it },
-                        placeholder = { Text("dd/mm/aaaa") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-
-                    // Observación
-                    Text("Observación (opcional)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = observacion,
-                        onValueChange = { observacion = it },
-                        placeholder = { Text("Notas adicionales...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        shape = RoundedCornerShape(8.dp)
-                    )
                 }
-            }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Registrar salida")
+        }
+
+        if (mensaje.isNotBlank()) {
+            Text(
+                text = mensaje,
+                color = if (registroExitoso) {
+                    Color(0xFF16803D)
+                } else {
+                    Color(0xFFB3261E)
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(
+            onClick = { onNavigate("Inicio") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Volver al inicio")
         }
     }
 }
-
