@@ -1,0 +1,187 @@
+warning: in the working copy of 'app/src/main/java/com/example/stockgo/MainActivity.kt', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app/src/main/java/com/example/stockgo/MainActivity.kt b/app/src/main/java/com/example/stockgo/MainActivity.kt[m
+[1mindex 8edfe91..83b0728 100644[m
+[1m--- a/app/src/main/java/com/example/stockgo/MainActivity.kt[m
+[1m+++ b/app/src/main/java/com/example/stockgo/MainActivity.kt[m
+[36m@@ -36,6 +36,8 @@[m [mimport androidx.compose.material3.AlertDialog[m
+ import com.example.stockgo.Model.Producto[m
+ import com.example.stockgo.Screens.LoginScreen[m
+ import com.example.stockgo.Screens.DashboardScreen[m
+[32m+[m[32mimport com.example.stockgo.Screens.ProductsScreen[m
+[32m+[m
+ [m
+ private val AzulStock = Color(0xFF3044B5)[m
+ private val FondoStock = Color(0xFFF5F7FB)[m
+[36m@@ -103,7 +105,10 @@[m [mclass MainActivity : ComponentActivity() {[m
+                     if (mostrarDashboard) {[m
+                         when (pantallaActual) {[m
+                             "Productos" -> ProductsScreen([m
+[31m-                                productos = productos[m
+[32m+[m[32m                                productos = productos,[m
+[32m+[m[32m                                onNavigate = { pantalla ->[m
+[32m+[m[32m                                    pantallaActual = pantalla[m
+[32m+[m[32m                                }[m
+                             )[m
+ [m
+                             "Inicio" -> DashboardScreen([m
+[36m@@ -139,345 +144,10 @@[m [mclass MainActivity : ComponentActivity() {[m
+         }[m
+     }[m
+ [m
+[31m-    @Composable[m
+[31m-    fun ProductsScreen([m
+[31m-        productos: androidx.compose.runtime.snapshots.SnapshotStateList<Producto>[m
+[31m-    ) {[m
+[31m-[m
+ [m
+[31m-    var busqueda by remember { mutableStateOf("") }[m
+[31m-    var filtro by remember { mutableStateOf("Todos") }[m
+[31m-    var mostrarDialogo by remember { mutableStateOf(false) }[m
+ [m
+[31m-    val productosFiltrados = productos.filter { producto ->[m
+[31m-        val coincideBusqueda =[m
+[31m-            producto.nombre.contains(busqueda, ignoreCase = true) ||[m
+[31m-                    producto.codigo.contains(busqueda, ignoreCase = true)[m
+ [m
+[31m-        val coincideFiltro = when (filtro) {[m
+[31m-            "Bajo stock" -> producto.stock > 0 &&[m
+[31m-                    producto.stock <= producto.stockMinimo[m
+[31m-            "Agotados" -> producto.stock == 0[m
+[31m-            else -> true[m
+[31m-        }[m
+[31m-[m
+[31m-        coincideBusqueda && coincideFiltro[m
+[31m-    }[m
+[31m-[m
+[31m-    Column([m
+[31m-        modifier = Modifier[m
+[31m-            .fillMaxSize()[m
+[31m-            .background(FondoStock)[m
+[31m-    ) {[m
+[31m-        // Encabezado[m
+[31m-        Row([m
+[31m-            modifier = Modifier[m
+[31m-                .fillMaxWidth()[m
+[31m-                .background(AzulStock)[m
+[31m-                .padding(20.dp),[m
+[31m-            verticalAlignment = Alignment.CenterVertically,[m
+[31m-            horizontalArrangement = Arrangement.SpaceBetween[m
+[31m-        ) {[m
+[31m-            Text([m
+[31m-                text = "Productos",[m
+[31m-                fontSize = 26.sp,[m
+[31m-                fontWeight = FontWeight.Bold,[m
+[31m-                color = Color.White[m
+[31m-            )[m
+[31m-[m
+[31m-            Button([m
+[31m-                onClick = { mostrarDialogo = true },[m
+[31m-                colors = ButtonDefaults.buttonColors([m
+[31m-                    containerColor = Color.White,[m
+[31m-                    contentColor = AzulStock[m
+[31m-                )[m
+[31m-            ) {[m
+[31m-                Text("+ Agregar")[m
+[31m-            }[m
+[31m-        }[m
+[31m-[m
+[31m-        Column([m
+[31m-            modifier = Modifier[m
+[31m-                .weight(1f)[m
+[31m-                .verticalScroll(rememberScrollState())[m
+[31m-                .padding(16.dp),[m
+[31m-            verticalArrangement = Arrangement.spacedBy(16.dp)[m
+[31m-        ) {[m
+[31m-            // Buscador[m
+[31m-            OutlinedTextField([m
+[31m-                value = busqueda,[m
+[31m-                onValueChange = { busqueda = it },[m
+[31m-                modifier = Modifier.fillMaxWidth(),[m
+[31m-                placeholder = { Text("Buscar producto...") },[m
+[31m-                singleLine = true,[m
+[31m-                shape = RoundedCornerShape(14.dp)[m
+[31m-            )[m
+ [m
+[31m-            // Filtros[m
+[31m-            Row([m
+[31m-                modifier = Modifier.fillMaxWidth(),[m
+[31m-                horizontalArrangement = Arrangement.spacedBy(6.dp)[m
+[31m-            ) {[m
+[31m-                listOf("Todos", "Bajo stock", "Agotados").forEach { opcion ->[m
+[31m-                    Button([m
+[31m-                        onClick = { filtro = opcion },[m
+[31m-                        modifier = Modifier.weight(1f),[m
+[31m-                        contentPadding = PaddingValues([m
+[31m-                            horizontal = 4.dp,[m
+[31m-                            vertical = 8.dp[m
+[31m-                        ),[m
+[31m-                        colors = ButtonDefaults.buttonColors([m
+[31m-                            containerColor = if (filtro == opcion) {[m
+[31m-                                AzulStock[m
+[31m-                            } else {[m
+[31m-                                Color.White[m
+[31m-                            },[m
+[31m-                            contentColor = if (filtro == opcion) {[m
+[31m-                                Color.White[m
+[31m-                            } else {[m
+[31m-                                AzulStock[m
+[31m-                            }[m
+[31m-                        )[m
+[31m-                    ) {[m
+[31m-                        Text([m
+[31m-                            text = opcion,[m
+[31m-                            fontSize = 11.sp[m
+[31m-                        )[m
+[31m-                    }[m
+[31m-                }[m
+[31m-            }[m
+[31m-[m
+[31m-            Text([m
+[31m-                text = "${productosFiltrados.size} productos encontrados",[m
+[31m-                color = Color(0xFF858B98),[m
+[31m-                fontSize = 14.sp[m
+[31m-            )[m
+[31m-[m
+[31m-            // Lista de productos[m
+[31m-            if (productosFiltrados.isEmpty()) {[m
+[31m-                Card([m
+[31m-                    modifier = Modifier.fillMaxWidth(),[m
+[31m-                    colors = CardDefaults.cardColors([m
+[31m-                        containerColor = Color.White[m
+[31m-                    )[m
+[31m-                ) {[m
+[31m-                    Text([m
+[31m-                        text = "No se encontraron productos.",[m
+[31m-                        modifier = Modifier.padding(20.dp),[m
+[31m-                        color = Color(0xFF596273)[m
+[31m-                    )[m
+[31m-                }[m
+[31m-            } else {[m
+[31m-                productosFiltrados.forEach { producto ->[m
+[31m-                    ProductItem([m
+[31m-                        producto = producto,[m
+[31m-                        onEliminar = {[m
+[31m-                            productos.remove(producto)[m
+[31m-                        }[m
+[31m-                    )[m
+[31m-                }[m
+[31m-            }[m
+[31m-        }[m
+[31m-    }[m
+[31m-[m
+[31m-    // Formulario para agregar productos[m
+[31m-    if (mostrarDialogo) {[m
+[31m-        AddProductDialog([m
+[31m-            onDismiss = { mostrarDialogo = false },[m
+[31m-            onAgregar = { nuevoProducto ->[m
+[31m-                productos.add(nuevoProducto)[m
+[31m-                mostrarDialogo = false[m
+[31m-            },[m
+[31m-            siguienteCodigo = "PROD-${(productos.size + 1).toString().padStart(3, '0')}"[m
+[31m-        )[m
+[31m-    }[m
+[31m-}[m
+[31m-[m
+[31m-@Composable[m
+[31m-fun ProductItem([m
+[31m-    pro

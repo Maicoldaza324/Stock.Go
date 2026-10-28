@@ -25,6 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stockgo.Components.ProductAlert
 import com.example.stockgo.Components.StatCard
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.PaddingValues
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
@@ -187,8 +197,8 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             val opciones = listOf(
@@ -201,26 +211,55 @@ fun DashboardScreen(
             )
 
             opciones.forEach { opcion ->
+
+                val icono = when (opcion) {
+                    "Inicio" -> Icons.Filled.Home
+                    "Productos" -> Icons.Filled.Inventory
+                    "Entradas" -> Icons.Filled.TrendingUp
+                    "Salidas" -> Icons.Filled.TrendingDown
+                    "Reportes" -> Icons.Filled.Assessment
+                    else -> Icons.Filled.MoreHoriz
+                }
+
+                val seleccionado = opcion == "Inicio"
+
                 TextButton(
                     onClick = {
-                        onNavigate(opcion)
+                        if (!seleccionado) {
+                            onNavigate(opcion)
+                        }
                     },
                     modifier = Modifier.weight(1f),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    contentPadding = PaddingValues(
                         horizontal = 2.dp,
                         vertical = 4.dp
                     )
                 ) {
-                    Text(
-                        text = opcion,
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center,
-                        color = if (opcion == "Inicio") {
-                            AzulStock
-                        } else {
-                            Color(0xFF858B98)
-                        }
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = icono,
+                            contentDescription = opcion,
+                            modifier = Modifier.size(22.dp),
+                            tint = if (seleccionado) {
+                                AzulStock
+                            } else {
+                                Color(0xFF858B98)
+                            }
+                        )
+
+                        Text(
+                            text = opcion,
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            color = if (seleccionado) {
+                                AzulStock
+                            } else {
+                                Color(0xFF858B98)
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F6F8">
+
+    <!-- Barra superior (Color rojo para Salidas) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#D32F2F"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="← Registrar salida"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Contenido desplazable -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Tarjeta informativa -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFEBEE"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Salida de inventario"
+                    android:textColor="#D32F2F"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Despacho de productos del almacén"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Campo Producto -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Producto"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FFFFFF"
+                android:hint="Selecciona producto..."
+                android:inputType="text"
+                android:paddingHorizontal="12sp"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Campo Cantidad -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cantidad"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FFFFFF"
+                android:hint="0"
+                android:inputType="number"
+                android:paddingHorizontal="12sp"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Campo Destino / Cliente -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Destino / Cliente"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FFFFFF"
+                android:hint="Nombre del cliente o destino..."
+                android:inputType="text"
+                android:paddingHorizontal="12sp"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Campo Fecha -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fecha"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="#FFFFFF"
+                android:hint="dd/mm/aaaa"
+                android:inputType="date"
+                android:paddingHorizontal="12sp"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Campo Observación -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Observación (opcional)"
+                android:textSize="12sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:background="#FFFFFF"
+                android:gravity="top"
+                android:hint="Notas adicionales..."
+                android:inputType="textMultiLine"
+                android:padding="12dp"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Botón Registrar Salida -->
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="✓ REGISTRAR SALIDA"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:backgroundTint="#D32F2F" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
