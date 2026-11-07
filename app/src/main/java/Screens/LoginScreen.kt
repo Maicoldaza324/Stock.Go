@@ -1,33 +1,15 @@
+
 package com.example.stockgo.Screens
 
+import android.util.Patterns
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,18 +20,22 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stockgo.Model.Usuario
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    usuarios: List<Usuario>,
+    onLoginSuccess: (Usuario) -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var mostrarContrasena by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf("") }
+
+    var esError by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -60,7 +46,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // Encabezado azul
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,7 +91,6 @@ fun LoginScreen(
             )
         }
 
-        // Formulario de inicio de sesión
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -141,7 +125,6 @@ fun LoginScreen(
                     color = Color(0xFF858B98)
                 )
 
-                // Correo electrónico
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -159,7 +142,7 @@ fun LoginScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
-                            Text("admin@empresa.com")
+                            Text("admin@stockgo.com")
                         },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -169,7 +152,6 @@ fun LoginScreen(
                     )
                 }
 
-                // Contraseña
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -215,15 +197,14 @@ fun LoginScreen(
                     )
                 }
 
-                // Recuperar contraseña
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     TextButton(
                         onClick = {
-                            mensaje =
-                                "La recuperación de contraseña se implementará posteriormente."
+                            mensaje = "La recuperación de contraseña se implementará posteriormente."
+                            esError = false
                         }
                     ) {
                         Text(
@@ -233,14 +214,51 @@ fun LoginScreen(
                     }
                 }
 
-                // Botón de inicio de sesión
                 Button(
                     onClick = {
-                        if (correo.isBlank() || contrasena.isBlank()) {
-                            mensaje = "Ingresa tu correo y contraseña."
-                        } else {
-                            mensaje = ""
-                            onLoginSuccess()
+                        val correoIngresado = correo.trim()
+
+                        when {
+                            correoIngresado.isBlank() || contrasena.isBlank() -> {
+                                mensaje = "Ingresa tu correo y contraseña."
+                                esError = true
+                            }
+
+                            !Patterns.EMAIL_ADDRESS.matcher(correoIngresado).matches() -> {
+                                mensaje = "Ingresa un correo electrónico válido."
+                                esError = true
+                            }
+
+                            else -> {
+                                val usuario = usuarios.find {
+                                    it.correo.equals(
+                                        correoIngresado,
+                                        ignoreCase = true
+                                    )
+                                }
+
+                                when {
+                                    usuario == null -> {
+                                        mensaje = "No existe un usuario con ese correo."
+                                        esError = true
+                                    }
+
+                                    !usuario.activo -> {
+                                        mensaje = "Tu cuenta está inactiva. Contacta al administrador."
+                                        esError = true
+                                    }
+
+                                    usuario.contrasena != contrasena -> {
+                                        mensaje = "La contraseña es incorrecta."
+                                        esError = true
+                                    }
+
+                                    else -> {
+                                        mensaje = ""
+                                        onLoginSuccess(usuario)
+                                    }
+                                }
+                            }
                         }
                     },
                     modifier = Modifier
@@ -261,7 +279,11 @@ fun LoginScreen(
                 if (mensaje.isNotBlank()) {
                     Text(
                         text = mensaje,
-                        color = AzulStock,
+                        color = if (esError) {
+                            Color(0xFFB3261E)
+                        } else {
+                            AzulStock
+                        },
                         fontSize = 13.sp
                     )
                 }

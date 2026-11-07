@@ -18,11 +18,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stockgo.Model.Producto
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
 fun ProductItem(
     producto: Producto,
-    onEliminar: () -> Unit
+    onEliminar: () -> Unit,
+    onEditar: () -> Unit = {}
 ) {
     val estado = when {
         producto.stock == 0 -> "Agotado"
@@ -34,6 +37,13 @@ fun ProductItem(
         "Agotado" -> Color(0xFFC33B3B)
         "Bajo stock" -> Color(0xFFE5A323)
         else -> Color(0xFF4CAF50)
+    }
+
+    val formatoPrecio = NumberFormat.getCurrencyInstance(
+        Locale("es", "CO")
+    ).apply {
+        maximumFractionDigits = 0
+        minimumFractionDigits = 0
     }
 
     Card(
@@ -66,12 +76,18 @@ fun ProductItem(
                 color = Color(0xFF858B98)
             )
 
+            Text(
+                text = "Precio: ${formatoPrecio.format(producto.precio)}",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF3044B5)
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Column {
                     Text(
                         text = "Stock: ${producto.stock}",
@@ -94,14 +110,23 @@ fun ProductItem(
                 )
             }
 
-            TextButton(
-                onClick = onEliminar,
-                modifier = Modifier.align(Alignment.End)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
             ) {
-                Text(
-                    text = "Eliminar",
-                    color = Color(0xFFC33B3B)
-                )
+                TextButton(onClick = onEditar) {
+                    Text(
+                        text = "Editar",
+                        color = Color(0xFF3044B5)
+                    )
+                }
+
+                TextButton(onClick = onEliminar) {
+                    Text(
+                        text = "Eliminar",
+                        color = Color(0xFFC33B3B)
+                    )
+                }
             }
         }
     }

@@ -7,7 +7,8 @@ data class MovimientoInventario(
     val tipo: TipoMovimiento,
     val cantidad: Int,
     val fecha: Long,
-    val observaciones: String = ""
+    val observaciones: String = "",
+    val proveedor: String = ""
 )
 
 enum class TipoMovimiento {

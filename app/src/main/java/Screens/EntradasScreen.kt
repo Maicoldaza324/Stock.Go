@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,10 +45,25 @@ fun EntradasScreen(
     var productoSeleccionado by remember {
         mutableStateOf<Producto?>(null)
     }
+
     var cantidad by remember { mutableStateOf("") }
     var observaciones by remember { mutableStateOf("") }
-    var menuAbierto by remember { mutableStateOf(false) }
+    var proveedor by remember { mutableStateOf("") }
+
+    var menuProductosAbierto by remember {
+        mutableStateOf(false)
+    }
+
+    var menuProveedoresAbierto by remember {
+        mutableStateOf(false)
+    }
+
     var mensaje by remember { mutableStateOf("") }
+
+    // Proveedores temporales durante la ejecución de la aplicación.
+    val proveedores = remember {
+        mutableStateListOf<String>()
+    }
 
     Column(
         modifier = Modifier
@@ -56,6 +72,7 @@ fun EntradasScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+
         Text(
             text = "Registrar entrada",
             color = AzulEntradas,
@@ -80,10 +97,14 @@ fun EntradasScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+
+                // Selección de producto
                 Text("Producto")
 
                 Button(
-                    onClick = { menuAbierto = true },
+                    onClick = {
+                        menuProductosAbierto = true
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
@@ -94,8 +115,10 @@ fun EntradasScreen(
                 }
 
                 DropdownMenu(
-                    expanded = menuAbierto,
-                    onDismissRequest = { menuAbierto = false }
+                    expanded = menuProductosAbierto,
+                    onDismissRequest = {
+                        menuProductosAbierto = false
+                    }
                 ) {
                     productos.forEach { producto ->
                         DropdownMenuItem(
@@ -104,7 +127,7 @@ fun EntradasScreen(
                             },
                             onClick = {
                                 productoSeleccionado = producto
-                                menuAbierto = false
+                                menuProductosAbierto = false
                                 mensaje = ""
                             }
                         )
@@ -115,6 +138,7 @@ fun EntradasScreen(
                     Text("Stock actual: ${it.stock} unidades")
                 }
 
+                // Cantidad
                 OutlinedTextField(
                     value = cantidad,
                     onValueChange = { valor ->
@@ -124,23 +148,90 @@ fun EntradasScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Cantidad que ingresa") },
-                    placeholder = { Text("Ej. 10") },
+                    label = {
+                        Text("Cantidad que ingresa")
+                    },
+                    placeholder = {
+                        Text("Ej. 10")
+                    },
                     singleLine = true
                 )
 
+                // Proveedor
+                Text("Proveedor")
+
                 OutlinedTextField(
-                    value = observaciones,
-                    onValueChange = { observaciones = it },
+                    value = proveedor,
+                    onValueChange = {
+                        proveedor = it
+                        mensaje = ""
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Observaciones (opcional)") },
-                    placeholder = { Text("Ej. Compra a proveedor") }
+                    label = {
+                        Text("Nombre del proveedor")
+                    },
+                    placeholder = {
+                        Text("Ej. Distribuidora Central")
+                    },
+                    singleLine = true
                 )
 
+                if (proveedores.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = {
+                                menuProveedoresAbierto = true
+                            }
+                        ) {
+                            Text("Seleccionar proveedor existente")
+                        }
+
+                        DropdownMenu(
+                            expanded = menuProveedoresAbierto,
+                            onDismissRequest = {
+                                menuProveedoresAbierto = false
+                            }
+                        ) {
+                            proveedores.forEach { nombreProveedor ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(nombreProveedor)
+                                    },
+                                    onClick = {
+                                        proveedor = nombreProveedor
+                                        menuProveedoresAbierto = false
+                                        mensaje = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Observaciones
+                OutlinedTextField(
+                    value = observaciones,
+                    onValueChange = {
+                        observaciones = it
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Text("Observaciones (opcional)")
+                    },
+                    placeholder = {
+                        Text("Ej. Compra a proveedor")
+                    }
+                )
+
+                // Registrar entrada
                 Button(
                     onClick = {
                         val producto = productoSeleccionado
                         val unidades = cantidad.toIntOrNull()
+                        val nombreProveedor = proveedor.trim()
 
                         when {
                             producto == null -> {
@@ -151,14 +242,33 @@ fun EntradasScreen(
                                 mensaje = "Ingresa una cantidad mayor que cero."
                             }
 
+                            nombreProveedor.isBlank() -> {
+                                mensaje = "Ingresa o selecciona un proveedor."
+                            }
+
                             else -> {
-                                val indice = productos.indexOf(producto)
+                                val indice = productos.indexOfFirst {
+                                    it.codigo == producto.codigo
+                                }
 
                                 if (indice >= 0) {
+
                                     productos[indice] = producto.copy(
                                         stock = producto.stock + unidades
                                     )
 
+                                    // Guardar proveedor si es nuevo.
+                                    if (proveedores.none {
+                                            it.equals(
+                                                nombreProveedor,
+                                                ignoreCase = true
+                                            )
+                                        }
+                                    ) {
+                                        proveedores.add(nombreProveedor)
+                                    }
+
+                                    // Registrar movimiento.
                                     movimientos.add(
                                         MovimientoInventario(
                                             id = "MOV-${(movimientos.size + 1).toString().padStart(3, '0')}",
@@ -167,14 +277,18 @@ fun EntradasScreen(
                                             tipo = TipoMovimiento.ENTRADA,
                                             cantidad = unidades,
                                             fecha = System.currentTimeMillis(),
-                                            observaciones = observaciones.trim()
+                                            observaciones = observaciones.trim(),
+                                            proveedor = nombreProveedor
                                         )
                                     )
 
                                     mensaje = "Entrada registrada correctamente."
+
                                     cantidad = ""
+                                    proveedor = ""
                                     observaciones = ""
                                     productoSeleccionado = null
+
                                 } else {
                                     mensaje = "El producto ya no está disponible."
                                 }
@@ -203,6 +317,7 @@ fun EntradasScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Historial
         Text(
             text = "Últimas entradas",
             color = AzulEntradas,
@@ -212,14 +327,20 @@ fun EntradasScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         val ultimasEntradas = movimientos
-            .filter { it.tipo == TipoMovimiento.ENTRADA }
+            .filter {
+                it.tipo == TipoMovimiento.ENTRADA
+            }
             .asReversed()
             .take(10)
 
         if (ultimasEntradas.isEmpty()) {
+
             Text("Todavía no hay entradas registradas.")
+
         } else {
+
             ultimasEntradas.forEach { movimiento ->
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -229,11 +350,16 @@ fun EntradasScreen(
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Text(movimiento.nombreProducto)
+
                         Text("Código: ${movimiento.codigoProducto}")
+
                         Text("Cantidad ingresada: ${movimiento.cantidad}")
+
+                        Text("Proveedor: ${movimiento.proveedor.ifBlank { "No especificado" }}")
 
                         if (movimiento.observaciones.isNotBlank()) {
                             Text("Observaciones: ${movimiento.observaciones}")
@@ -246,7 +372,9 @@ fun EntradasScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(
-            onClick = { onNavigate("Inicio") },
+            onClick = {
+                onNavigate("Inicio")
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Volver al inicio")
