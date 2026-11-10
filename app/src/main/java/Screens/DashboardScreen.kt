@@ -1,3 +1,4 @@
+
 package com.example.stockgo.Screens
 
 import androidx.compose.foundation.background
@@ -7,15 +8,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,24 +40,61 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stockgo.Components.ProductAlert
 import com.example.stockgo.Components.StatCard
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.layout.PaddingValues
+import com.example.stockgo.Data.ProductoRepository
+import com.example.stockgo.Model.Producto
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
 
 @Composable
 fun DashboardScreen(
+    productos: List<Producto> = emptyList(),
     onNavigate: (String) -> Unit
 ) {
+    val productosDashboard = remember {
+        mutableStateListOf<Producto>().apply {
+            addAll(productos)
+        }
+    }
+
+    // Consultar productos directamente desde Firestore
+    LaunchedEffect(Unit) {
+        try {
+            val repositorio = ProductoRepository()
+            val productosFirebase = repositorio.obtenerProductos()
+
+            productosDashboard.clear()
+            productosDashboard.addAll(productosFirebase)
+        } catch (e: Exception) {
+            // Si falla la conexión, se conservan los datos recibidos.
+        }
+    }
+
+    // Estadísticas del inventario
+    val totalProductos = productosDashboard.size
+
+    val disponibles = productosDashboard.count {
+        it.stock > 0
+    }
+
+    val bajoStock = productosDashboard.count {
+        it.stock > 0 && it.stock <= it.stockMinimo
+    }
+
+    val agotados = productosDashboard.count {
+        it.stock <= 0
+    }
+
+    // Alertas de inventario
+    val productosAlerta = productosDashboard
+        .filter {
+            it.stock <= it.stockMinimo
+        }
+        .sortedWith(
+            compareBy<Producto> { if (it.stock <= 0) 0 else 1 }
+                .thenBy { it.stock }
+        )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -68,13 +120,19 @@ fun DashboardScreen(
                 color = Color.White.copy(alpha = 0.85f)
             )
 
-            Spacer(modifier = Modifier.padding(top = 8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Stock.Go",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
+            )
+
+            Text(
+                text = "Resumen de tu inventario",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.85f)
             )
         }
 
@@ -87,20 +145,20 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Tarjetas de estadísticas
+            // Estadísticas
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
                     titulo = "Total productos",
-                    valor = "124",
+                    valor = totalProductos.toString(),
                     color = AzulStock,
                     modifier = Modifier.weight(1f)
                 )
 
                 StatCard(
                     titulo = "Disponibles",
-                    valor = "98",
+                    valor = disponibles.toString(),
                     color = Color(0xFF4CAF50),
                     modifier = Modifier.weight(1f)
                 )
@@ -111,20 +169,20 @@ fun DashboardScreen(
             ) {
                 StatCard(
                     titulo = "Bajo stock",
-                    valor = "18",
+                    valor = bajoStock.toString(),
                     color = Color(0xFFE5A323),
                     modifier = Modifier.weight(1f)
                 )
 
                 StatCard(
                     titulo = "Agotados",
-                    valor = "8",
+                    valor = agotados.toString(),
                     color = Color(0xFFC33B3B),
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Alertas
+            // Alertas de inventario
             Text(
                 text = "⚠ Atención requerida",
                 fontSize = 20.sp,
@@ -132,26 +190,59 @@ fun DashboardScreen(
                 color = Color(0xFF202536)
             )
 
-            ProductAlert(
-                nombre = "Mouse inalámbrico Logitech",
-                detalle = "Stock: 3 · Mínimo: 10",
-                estado = "Bajo stock",
-                color = Color(0xFFE5A323)
-            )
+            if (productosAlerta.isEmpty()) {
 
-            ProductAlert(
-                nombre = "Resma papel A4 75g",
-                detalle = "Stock: 0 · Mínimo: 20",
-                estado = "Agotado",
-                color = Color(0xFFC33B3B)
-            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color(0xFFE7F5E9),
+                            RoundedCornerShape(14.dp)
+                        )
+                        .padding(18.dp)
+                ) {
+                    Text(
+                        text = "¡Inventario en buen estado!",
+                        color = Color(0xFF2E7D32),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
 
-            ProductAlert(
-                nombre = "Tóner HP LaserJet 85A",
-                detalle = "Stock: 2 · Mínimo: 5",
-                estado = "Bajo stock",
-                color = Color(0xFFE5A323)
-            )
+                    Text(
+                        text = "No tienes productos con bajo stock ni agotados.",
+                        color = Color(0xFF388E3C),
+                        fontSize = 14.sp
+                    )
+                }
+
+            } else {
+
+                Text(
+                    text = "${productosAlerta.size} productos requieren atención",
+                    color = Color(0xFF858B98),
+                    fontSize = 14.sp
+                )
+
+                productosAlerta.forEach { producto ->
+
+                    val agotado = producto.stock <= 0
+
+                    ProductAlert(
+                        nombre = producto.nombre,
+                        detalle = "Stock: ${producto.stock} · Mínimo: ${producto.stockMinimo}",
+                        estado = if (agotado) {
+                            "Agotado"
+                        } else {
+                            "Bajo stock"
+                        },
+                        color = if (agotado) {
+                            Color(0xFFC33B3B)
+                        } else {
+                            Color(0xFFE5A323)
+                        }
+                    )
+                }
+            }
 
             // Acciones rápidas
             Text(

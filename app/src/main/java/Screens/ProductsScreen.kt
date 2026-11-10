@@ -25,7 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stockgo.Components.AddProductDialog
 import com.example.stockgo.Components.ProductItem
+import com.example.stockgo.Data.ProductoRepository
 import com.example.stockgo.Model.Producto
+import kotlinx.coroutines.launch
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
@@ -34,12 +36,49 @@ private val FondoStock = Color(0xFFF5F7FB)
 fun ProductsScreen(
     productos: SnapshotStateList<Producto>,
     categorias: SnapshotStateList<String>,
+    esAdministrador: Boolean,
     onNavigate: (String) -> Unit
 ) {
     var busqueda by remember { mutableStateOf("") }
     var filtro by remember { mutableStateOf("Todos") }
     var mostrarDialogo by remember { mutableStateOf(false) }
     var productoEditando by remember { mutableStateOf<Producto?>(null) }
+    var productoDetalle by remember { mutableStateOf<Producto?>(null) }
+
+    var cargando by remember { mutableStateOf(true) }
+    var mensajeError by remember { mutableStateOf<String?>(null) }
+
+    val repository = remember { ProductoRepository() }
+    val scope = rememberCoroutineScope()
+
+    // Cargar productos desde Firestore
+    LaunchedEffect(Unit) {
+        cargando = true
+        mensajeError = null
+
+        try {
+            val productosFirebase = repository.obtenerProductos()
+
+            productos.clear()
+            productos.addAll(productosFirebase)
+
+        } catch (e: Exception) {
+            mensajeError = "No se pudieron cargar los productos: ${e.localizedMessage}"
+        } finally {
+            cargando = false
+        }
+    }
+
+    // Mostrar detalle del producto seleccionado
+    if (productoDetalle != null) {
+        ProductDetailScreen(
+            producto = productoDetalle!!,
+            onNavigateBack = {
+                productoDetalle = null
+            }
+        )
+        return
+    }
 
     val productosFiltrados = productos.filter { producto ->
         val coincideBusqueda =
@@ -51,7 +90,7 @@ fun ProductsScreen(
                 producto.stock > 0 &&
                         producto.stock <= producto.stockMinimo
 
-            "Agotados" -> producto.stock == 0
+            "Agotados" -> producto.stock <= 0
             else -> true
         }
 
@@ -78,29 +117,31 @@ fun ProductsScreen(
                 color = Color.White
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { onNavigate("Categorias") },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    )
+            if (esAdministrador) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("Categorías")
-                }
+                    OutlinedButton(
+                        onClick = { onNavigate("Categorias") },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Categorías")
+                    }
 
-                Button(
-                    onClick = {
-                        productoEditando = null
-                        mostrarDialogo = true
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = AzulStock
-                    )
-                ) {
-                    Text("+ Agregar")
+                    Button(
+                        onClick = {
+                            productoEditando = null
+                            mostrarDialogo = true
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = AzulStock
+                        )
+                    ) {
+                        Text("+ Agregar")
+                    }
                 }
             }
         }
@@ -154,13 +195,33 @@ fun ProductsScreen(
                 }
             }
 
+            // Mensajes de carga y errores
+            if (cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AzulStock)
+                }
+            }
+
+            mensajeError?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    fontSize = 13.sp
+                )
+            }
+
             Text(
                 text = "${productosFiltrados.size} productos encontrados",
                 color = Color(0xFF858B98),
                 fontSize = 14.sp
             )
 
-            if (productosFiltrados.isEmpty()) {
+            if (!cargando && productosFiltrados.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -173,22 +234,51 @@ fun ProductsScreen(
                         color = Color(0xFF596273)
                     )
                 }
-            } else {
+            } else if (!cargando) {
                 productosFiltrados.forEach { producto ->
-                    ProductItem(
-                        producto = producto,
-                        onEditar = {
-                            productoEditando = producto
-                            mostrarDialogo = true
-                        },
-                        onEliminar = {
-                            productos.remove(producto)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        ProductItem(
+                            producto = producto,
+                            esAdministrador = esAdministrador,
+                            onEditar = {
+                                if (esAdministrador) {
+                                    productoEditando = producto
+                                    mostrarDialogo = true
+                                }
+                            },
+                            onEliminar = {
+                                if (esAdministrador) {
+                                    scope.launch {
+                                        try {
+                                            repository.eliminarProducto(producto.codigo)
+                                            productos.remove(producto)
+                                            mensajeError = null
+                                        } catch (e: Exception) {
+                                            mensajeError =
+                                                "No se pudo eliminar: ${e.localizedMessage}"
+                                        }
+                                    }
+                                }
+                            }
+                        )
+
+                        OutlinedButton(
+                            onClick = {
+                                productoDetalle = producto
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Ver detalle")
                         }
-                    )
+                    }
                 }
             }
         }
 
+        // Navegación inferior
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -256,27 +346,41 @@ fun ProductsScreen(
         }
     }
 
-    if (mostrarDialogo) {
+    // Diálogo para agregar o editar productos
+    if (mostrarDialogo && esAdministrador) {
         AddProductDialog(
             onDismiss = {
                 mostrarDialogo = false
                 productoEditando = null
             },
             onAgregar = { productoActualizado ->
-                if (productoEditando == null) {
-                    productos.add(productoActualizado)
-                } else {
-                    val indice = productos.indexOfFirst {
-                        it.codigo == productoEditando?.codigo
-                    }
+                scope.launch {
+                    try {
+                        // Guardar primero en Firestore
+                        repository.guardarProducto(productoActualizado)
 
-                    if (indice != -1) {
-                        productos[indice] = productoActualizado
+                        // Actualizar la lista local después de guardar
+                        if (productoEditando == null) {
+                            productos.add(productoActualizado)
+                        } else {
+                            val indice = productos.indexOfFirst {
+                                it.codigo == productoEditando?.codigo
+                            }
+
+                            if (indice != -1) {
+                                productos[indice] = productoActualizado
+                            }
+                        }
+
+                        mensajeError = null
+                        mostrarDialogo = false
+                        productoEditando = null
+
+                    } catch (e: Exception) {
+                        mensajeError =
+                            "No se pudo guardar el producto: ${e.localizedMessage}"
                     }
                 }
-
-                mostrarDialogo = false
-                productoEditando = null
             },
             siguienteCodigo = "PROD-${(productos.size + 1).toString().padStart(3, '0')}",
             productoEditar = productoEditando,

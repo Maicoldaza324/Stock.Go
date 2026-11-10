@@ -4,8 +4,8 @@ package com.example.stockgo.Screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -19,8 +19,10 @@ import com.example.stockgo.Model.MovimientoInventario
 import com.example.stockgo.Model.Producto
 import com.example.stockgo.Model.TipoMovimiento
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
@@ -34,6 +36,33 @@ private enum class FiltroMovimiento(val etiqueta: String) {
     SALIDAS("Salidas")
 }
 
+private fun fechaClaveMovimiento(timestamp: Long): Int {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = timestamp
+
+    return calendar.get(Calendar.YEAR) * 10000 +
+            (calendar.get(Calendar.MONTH) + 1) * 100 +
+            calendar.get(Calendar.DAY_OF_MONTH)
+}
+
+private fun fechaClaveSelector(timestamp: Long): Int {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+    calendar.timeInMillis = timestamp
+
+    return calendar.get(Calendar.YEAR) * 10000 +
+            (calendar.get(Calendar.MONTH) + 1) * 100 +
+            calendar.get(Calendar.DAY_OF_MONTH)
+}
+
+private fun fechaTexto(timestamp: Long?): String {
+    if (timestamp == null) return "Seleccionar fecha"
+
+    val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    formato.timeZone = TimeZone.getTimeZone("UTC")
+
+    return formato.format(Date(timestamp))
+}
+
 @Composable
 fun ReportsScreen(
     productos: SnapshotStateList<Producto>,
@@ -42,7 +71,11 @@ fun ReportsScreen(
 ) {
     val totalProductos = productos.size
     val totalUnidades = productos.sumOf { it.stock }
-    val productosSinStock = productos.count { it.stock == 0 }
+
+    val productosSinStock = productos.count {
+        it.stock <= 0
+    }
+
     val productosStockBajo = productos.count {
         it.stock > 0 && it.stock <= it.stockMinimo
     }
@@ -78,17 +111,113 @@ fun ReportsScreen(
         mutableStateOf(FiltroMovimiento.TODOS)
     }
 
+    var fechaInicio by remember {
+        mutableStateOf<Long?>(null)
+    }
+
+    var fechaFin by remember {
+        mutableStateOf<Long?>(null)
+    }
+
+    var mostrarSelectorInicio by remember {
+        mutableStateOf(false)
+    }
+
+    var mostrarSelectorFin by remember {
+        mutableStateOf(false)
+    }
+
     val movimientosFiltrados = movimientos
-        .filter {
-            when (filtroSeleccionado) {
+        .filter { movimiento ->
+            val coincideTipo = when (filtroSeleccionado) {
                 FiltroMovimiento.TODOS -> true
                 FiltroMovimiento.ENTRADAS ->
-                    it.tipo == TipoMovimiento.ENTRADA
+                    movimiento.tipo == TipoMovimiento.ENTRADA
                 FiltroMovimiento.SALIDAS ->
-                    it.tipo == TipoMovimiento.SALIDA
+                    movimiento.tipo == TipoMovimiento.SALIDA
             }
+
+            val claveFecha = fechaClaveMovimiento(movimiento.fecha)
+
+            val coincideInicio = fechaInicio?.let {
+                claveFecha >= fechaClaveSelector(it)
+            } ?: true
+
+            val coincideFin = fechaFin?.let {
+                claveFecha <= fechaClaveSelector(it)
+            } ?: true
+
+            coincideTipo && coincideInicio && coincideFin
         }
         .sortedByDescending { it.fecha }
+
+    // Selector de fecha inicial
+    if (mostrarSelectorInicio) {
+        val estadoFecha = rememberDatePickerState(
+            initialSelectedDateMillis = fechaInicio
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                mostrarSelectorInicio = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        fechaInicio = estadoFecha.selectedDateMillis
+                        mostrarSelectorInicio = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarSelectorInicio = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = estadoFecha)
+        }
+    }
+
+    // Selector de fecha final
+    if (mostrarSelectorFin) {
+        val estadoFecha = rememberDatePickerState(
+            initialSelectedDateMillis = fechaFin
+        )
+
+        DatePickerDialog(
+            onDismissRequest = {
+                mostrarSelectorFin = false
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        fechaFin = estadoFecha.selectedDateMillis
+                        mostrarSelectorFin = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarSelectorFin = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = estadoFecha)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -155,7 +284,6 @@ fun ReportsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Gráfico de entradas y salidas
         ChartCard(title = "Entradas vs. salidas") {
             Text(
                 text = "Unidades registradas",
@@ -196,11 +324,18 @@ fun ReportsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Gráfico de productos con mayor movimiento
         ChartCard(title = "Productos con mayor movimiento") {
             if (movimientosPorProducto.isEmpty()) {
                 EmptyChartMessage("Todavía no hay movimientos registrados.")
             } else {
+                Text(
+                    text = "Unidades registradas en entradas y salidas",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
                 movimientosPorProducto.forEachIndexed { index, producto ->
                     ChartBar(
                         titulo = "${index + 1}. ${producto.first}",
@@ -216,7 +351,6 @@ fun ReportsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Gráfico de inventario por categorías
         ChartCard(title = "Inventario por categorías") {
             if (inventarioPorCategoria.isEmpty()) {
                 EmptyChartMessage("No hay productos para mostrar.")
@@ -289,6 +423,7 @@ fun ReportsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Filtros por tipo de movimiento
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -296,11 +431,86 @@ fun ReportsScreen(
             FiltroMovimiento.entries.forEach { filtro ->
                 FilterChip(
                     selected = filtroSeleccionado == filtro,
-                    onClick = { filtroSeleccionado = filtro },
-                    label = { Text(filtro.etiqueta) }
+                    onClick = {
+                        filtroSeleccionado = filtro
+                    },
+                    label = {
+                        Text(filtro.etiqueta)
+                    }
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Filtro por fechas
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Filtrar por fechas",
+                    fontWeight = FontWeight.Bold,
+                    color = AzulStock
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        mostrarSelectorInicio = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Desde: ${fechaTexto(fechaInicio)}")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        mostrarSelectorFin = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Hasta: ${fechaTexto(fechaFin)}")
+                }
+
+                if (
+                    fechaInicio != null &&
+                    fechaFin != null &&
+                    fechaClaveSelector(fechaInicio!!) >
+                    fechaClaveSelector(fechaFin!!)
+                ) {
+                    Text(
+                        text = "La fecha inicial no puede ser posterior a la fecha final.",
+                        color = RojoSalida,
+                        fontSize = 12.sp
+                    )
+                }
+
+                TextButton(
+                    onClick = {
+                        fechaInicio = null
+                        fechaFin = null
+                        filtroSeleccionado = FiltroMovimiento.TODOS
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Limpiar filtros")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "${movimientosFiltrados.size} movimientos encontrados",
+            color = Color.Gray,
+            fontSize = 13.sp
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -327,14 +537,7 @@ fun ReportsScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = when (filtroSeleccionado) {
-                            FiltroMovimiento.TODOS ->
-                                "Todavía no hay movimientos registrados."
-                            FiltroMovimiento.ENTRADAS ->
-                                "Todavía no hay entradas registradas."
-                            FiltroMovimiento.SALIDAS ->
-                                "Todavía no hay salidas registradas."
-                        },
+                        text = "No hay movimientos que coincidan con los filtros seleccionados.",
                         color = Color.Gray
                     )
                 }
@@ -435,7 +638,9 @@ fun ReportsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedButton(
-            onClick = { onNavigate("Inicio") },
+            onClick = {
+                onNavigate("Inicio")
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Volver al inicio")

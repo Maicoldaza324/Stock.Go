@@ -1,35 +1,23 @@
+
 package com.example.stockgo.Screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.stockgo.Data.MovimientoRepository
 import com.example.stockgo.Model.MovimientoInventario
 import com.example.stockgo.Model.Producto
 import com.example.stockgo.Model.TipoMovimiento
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SalidasScreen(
@@ -40,13 +28,17 @@ fun SalidasScreen(
     var productoSeleccionado by remember {
         mutableStateOf<Producto?>(null)
     }
+
     var cantidad by remember { mutableStateOf("") }
     var motivo by remember { mutableStateOf("Venta") }
     var observaciones by remember { mutableStateOf("") }
     var menuProductosAbierto by remember { mutableStateOf(false) }
     var menuMotivosAbierto by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf("") }
-    var registroExitoso by remember { mutableStateOf(false) }
+    var guardando by remember { mutableStateOf(false) }
+
+    val repository = remember { MovimientoRepository() }
+    val scope = rememberCoroutineScope()
 
     val motivos = listOf(
         "Venta",
@@ -54,6 +46,21 @@ fun SalidasScreen(
         "Dañado / Expirado",
         "Otro"
     )
+
+    val formatoFecha = remember {
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "CO"))
+    }
+
+    // Recuperar historial desde Firebase
+    LaunchedEffect(Unit) {
+        try {
+            val historial = repository.obtenerMovimientos()
+            movimientos.clear()
+            movimientos.addAll(historial)
+        } catch (e: Exception) {
+            mensaje = "Error cargando historial: ${e.localizedMessage}"
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -185,17 +192,10 @@ fun SalidasScreen(
                 when {
                     producto == null -> {
                         mensaje = "Selecciona un producto."
-                        registroExitoso = false
                     }
 
                     unidades == null || unidades <= 0 -> {
                         mensaje = "Ingresa una cantidad mayor que cero."
-                        registroExitoso = false
-                    }
-
-                    unidades > producto.stock -> {
-                        mensaje = "No hay existencias suficientes."
-                        registroExitoso = false
                     }
 
                     else -> {
@@ -205,60 +205,133 @@ fun SalidasScreen(
 
                         if (indice == -1) {
                             mensaje = "El producto ya no está disponible."
-                            registroExitoso = false
                         } else {
-                            val productoActual = productos[indice]
+                            guardando = true
 
-                            if (unidades > productoActual.stock) {
-                                mensaje = "No hay existencias suficientes."
-                                registroExitoso = false
-                            } else {
-                                productos[indice] = productoActual.copy(
-                                    stock = productoActual.stock - unidades
-                                )
-
-                                movimientos.add(
-                                    MovimientoInventario(
-                                        id = "MOV-${(movimientos.size + 1)
-                                            .toString().padStart(3, '0')}",
-                                        codigoProducto = productoActual.codigo,
-                                        nombreProducto = productoActual.nombre,
-                                        tipo = TipoMovimiento.SALIDA,
-                                        cantidad = unidades,
-                                        fecha = System.currentTimeMillis(),
-                                        observaciones = "Motivo: $motivo" +
+                            scope.launch {
+                                try {
+                                    val detalleObservaciones =
+                                        "Motivo: $motivo" +
                                                 if (observaciones.isBlank()) {
                                                     ""
                                                 } else {
                                                     " - ${observaciones.trim()}"
                                                 }
-                                    )
-                                )
 
-                                mensaje = "Salida registrada correctamente."
-                                registroExitoso = true
-                                cantidad = ""
-                                observaciones = ""
-                                productoSeleccionado = null
+                                    val movimiento =
+                                        repository.registrarMovimiento(
+                                            producto = producto,
+                                            tipo = TipoMovimiento.SALIDA,
+                                            cantidad = unidades,
+                                            observaciones = detalleObservaciones
+                                        )
+
+                                    val indiceActual = productos.indexOfFirst {
+                                        it.codigo == producto.codigo
+                                    }
+
+                                    if (indiceActual >= 0) {
+                                        productos[indiceActual] =
+                                            productos[indiceActual].copy(
+                                                stock = productos[indiceActual].stock - unidades
+                                            )
+                                    }
+
+                                    movimientos.add(movimiento)
+
+                                    mensaje = "Salida registrada correctamente."
+                                    cantidad = ""
+                                    observaciones = ""
+                                    productoSeleccionado = null
+                                    motivo = "Venta"
+
+                                } catch (e: Exception) {
+                                    mensaje = "Error al registrar: ${e.localizedMessage}"
+                                } finally {
+                                    guardando = false
+                                }
                             }
                         }
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !guardando
         ) {
-            Text("Registrar salida")
+            if (guardando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White
+                )
+            } else {
+                Text("Registrar salida")
+            }
         }
 
         if (mensaje.isNotBlank()) {
             Text(
                 text = mensaje,
-                color = if (registroExitoso) {
+                color = if (mensaje == "Salida registrada correctamente.") {
                     Color(0xFF16803D)
                 } else {
                     Color(0xFFB3261E)
                 }
             )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Últimas salidas",
+            color = Color(0xFF2C365E),
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        val ultimasSalidas = movimientos
+            .filter { it.tipo == TipoMovimiento.SALIDA }
+            .sortedByDescending { it.fecha }
+            .take(10)
+
+        if (ultimasSalidas.isEmpty()) {
+            Text("Todavía no hay salidas registradas.")
+        } else {
+            ultimasSalidas.forEach { movimiento ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = movimiento.nombreProducto,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text("Código: ${movimiento.codigoProducto}")
+                        Text("Cantidad retirada: ${movimiento.cantidad}")
+
+                        Text(
+                            "Fecha: ${
+                                formatoFecha.format(Date(movimiento.fecha))
+                            }"
+                        )
+
+                        if (movimiento.usuarioNombre.isNotBlank()) {
+                            Text("Registrado por: ${movimiento.usuarioNombre}")
+                        }
+
+                        if (movimiento.observaciones.isNotBlank()) {
+                            Text(movimiento.observaciones)
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))

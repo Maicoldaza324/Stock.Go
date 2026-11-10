@@ -1,3 +1,4 @@
+
 package com.example.stockgo.Model
 
 data class MovimientoInventario(
@@ -8,7 +9,9 @@ data class MovimientoInventario(
     val cantidad: Int,
     val fecha: Long,
     val observaciones: String = "",
-    val proveedor: String = ""
+    val proveedor: String = "",
+    val usuarioUid: String = "",
+    val usuarioNombre: String = ""
 )
 
 enum class TipoMovimiento {

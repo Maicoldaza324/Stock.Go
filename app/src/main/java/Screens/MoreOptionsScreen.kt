@@ -2,25 +2,18 @@ package com.example.stockgo.Screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,8 +29,14 @@ private val FondoStock = Color(0xFFF5F7FB)
 
 @Composable
 fun MoreOptionsScreen(
+    rol: String,
     onNavigate: (String) -> Unit
 ) {
+    val esAdministrador = rol.equals(
+        "Administrador",
+        ignoreCase = true
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,7 +55,9 @@ fun MoreOptionsScreen(
                 tint = AzulStock,
                 modifier = Modifier
                     .size(28.dp)
-                    .clickable { onNavigate("Inicio") }
+                    .clickable {
+                        onNavigate("Inicio")
+                    }
             )
 
             Column(
@@ -78,6 +79,14 @@ fun MoreOptionsScreen(
         }
 
         Text(
+            text = "Sesión: $rol",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AzulStock,
+            modifier = Modifier.padding(bottom = 20.dp)
+        )
+
+        Text(
             text = "Mi cuenta",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
@@ -89,22 +98,26 @@ fun MoreOptionsScreen(
             titulo = "Mi perfil",
             descripcion = "Consulta tus datos personales",
             icono = Icons.Filled.Person,
-            onClick = { onNavigate("Perfil") }
+            onClick = {
+                onNavigate("Perfil")
+            }
         )
 
-        Spacer(modifier = Modifier.size(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         OptionCard(
             titulo = "Configuración",
             descripcion = "Opciones y preferencias de la aplicación",
             icono = Icons.Filled.Settings,
-            onClick = { onNavigate("Configuracion") }
+            onClick = {
+                onNavigate("Configuracion")
+            }
         )
 
-        Spacer(modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Administración",
+            text = "Inventario",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF202536),
@@ -112,11 +125,46 @@ fun MoreOptionsScreen(
         )
 
         OptionCard(
-            titulo = "Usuarios",
-            descripcion = "Accede a la gestión de usuarios",
-            icono = Icons.Filled.People,
-            onClick = { onNavigate("Usuarios") }
+            titulo = "Historial de movimientos",
+            descripcion = "Consulta todas las entradas y salidas",
+            icono = Icons.Filled.History,
+            onClick = {
+                onNavigate("Historial")
+            }
         )
+
+        // Opciones exclusivas del administrador
+        if (esAdministrador) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Administración",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF202536),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            OptionCard(
+                titulo = "Usuarios",
+                descripcion = "Gestiona los usuarios del sistema",
+                icono = Icons.Filled.People,
+                onClick = {
+                    onNavigate("Usuarios")
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OptionCard(
+                titulo = "Categorías",
+                descripcion = "Administra las categorías de productos",
+                icono = Icons.Filled.Settings,
+                onClick = {
+                    onNavigate("Categorias")
+                }
+            )
+        }
     }
 }
 

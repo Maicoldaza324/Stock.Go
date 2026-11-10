@@ -1,3 +1,4 @@
+
 package com.example.stockgo.Screens
 
 import android.util.Patterns
@@ -25,19 +26,23 @@ fun ProfileScreen(
     usuario: Usuario,
     onActualizarPerfil: (String, String) -> Unit,
     onLogout: () -> Unit,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    notificaciones: Boolean,
+    onNotificacionesChange: (Boolean) -> Unit,
+    correoDisponible: (String) -> Boolean
 ) {
+
     var editando by remember { mutableStateOf(false) }
+
     var nombre by remember(usuario.id, usuario.nombre) {
         mutableStateOf(usuario.nombre)
     }
+
     var correo by remember(usuario.id, usuario.correo) {
         mutableStateOf(usuario.correo)
     }
-    var mensajeError by remember { mutableStateOf("") }
 
-    var notificaciones by remember { mutableStateOf(true) }
-    var modoOscuro by remember { mutableStateOf(false) }
+    var mensajeError by remember { mutableStateOf("") }
 
     val azul = Color(0xFF1976D2)
     val fondo = Color(0xFFF4F6FA)
@@ -47,6 +52,8 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(fondo)
     ) {
+
+        // Encabezado
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,7 +61,10 @@ fun ProfileScreen(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { onNavigate("Más") }) {
+
+            IconButton(
+                onClick = { onNavigate("Más") }
+            ) {
                 Icon(
                     Icons.Default.ArrowBack,
                     contentDescription = "Volver",
@@ -76,12 +86,16 @@ fun ProfileScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            // Imagen de perfil
             Surface(
                 modifier = Modifier.size(100.dp),
                 shape = RoundedCornerShape(50.dp),
                 color = azul
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = "Usuario",
@@ -102,18 +116,26 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Información personal
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
                 elevation = CardDefaults.cardElevation(3.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+
                         Text(
                             "Información personal",
                             fontSize = 18.sp,
@@ -121,12 +143,14 @@ fun ProfileScreen(
                         )
 
                         if (!editando) {
-                            IconButton(onClick = {
-                                nombre = usuario.nombre
-                                correo = usuario.correo
-                                mensajeError = ""
-                                editando = true
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    nombre = usuario.nombre
+                                    correo = usuario.correo
+                                    mensajeError = ""
+                                    editando = true
+                                }
+                            ) {
                                 Icon(
                                     Icons.Default.Edit,
                                     contentDescription = "Editar perfil",
@@ -160,6 +184,7 @@ fun ProfileScreen(
 
                     if (mensajeError.isNotBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
                             text = mensajeError,
                             color = MaterialTheme.colorScheme.error,
@@ -168,12 +193,14 @@ fun ProfileScreen(
                     }
 
                     if (editando) {
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+
                             OutlinedButton(
                                 onClick = {
                                     nombre = usuario.nombre
@@ -188,18 +215,33 @@ fun ProfileScreen(
 
                             Button(
                                 onClick = {
-                                    when {
-                                        nombre.isBlank() ->
-                                            mensajeError = "Ingresa tu nombre."
 
-                                        !Patterns.EMAIL_ADDRESS.matcher(correo.trim()).matches() ->
-                                            mensajeError = "Ingresa un correo válido."
+                                    val correoLimpio = correo.trim()
+
+                                    when {
+                                        nombre.isBlank() -> {
+                                            mensajeError =
+                                                "Ingresa tu nombre."
+                                        }
+
+                                        !Patterns.EMAIL_ADDRESS.matcher(
+                                            correoLimpio
+                                        ).matches() -> {
+                                            mensajeError =
+                                                "Ingresa un correo válido."
+                                        }
+
+                                        !correoDisponible(correoLimpio) -> {
+                                            mensajeError =
+                                                "Este correo ya está registrado."
+                                        }
 
                                         else -> {
                                             onActualizarPerfil(
                                                 nombre.trim(),
-                                                correo.trim()
+                                                correoLimpio
                                             )
+
                                             mensajeError = ""
                                             editando = false
                                         }
@@ -210,11 +252,14 @@ fun ProfileScreen(
                                     containerColor = azul
                                 )
                             ) {
+
                                 Icon(
                                     Icons.Default.Save,
                                     contentDescription = null
                                 )
+
                                 Spacer(modifier = Modifier.width(6.dp))
+
                                 Text("Guardar")
                             }
                         }
@@ -224,12 +269,19 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Preferencias
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
                     Text(
                         "Preferencias",
                         fontSize = 18.sp,
@@ -243,22 +295,27 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Notificaciones")
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+
+                            Text("Notificaciones")
+
+                            Text(
+                                text = if (notificaciones) {
+                                    "Preferencia activada"
+                                } else {
+                                    "Preferencia desactivada"
+                                },
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+
                         Switch(
                             checked = notificaciones,
-                            onCheckedChange = { notificaciones = it }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Modo oscuro")
-                        Switch(
-                            checked = modoOscuro,
-                            onCheckedChange = { modoOscuro = it }
+                            onCheckedChange = onNotificacionesChange
                         )
                     }
                 }
@@ -266,6 +323,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Cerrar sesión
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
@@ -273,11 +331,14 @@ fun ProfileScreen(
                     contentColor = Color.Red
                 )
             ) {
+
                 Icon(
                     Icons.Default.Logout,
                     contentDescription = null
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
+
                 Text("Cerrar sesión")
             }
         }

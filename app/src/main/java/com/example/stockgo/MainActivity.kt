@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,6 +16,7 @@ import com.example.stockgo.Model.Usuario
 import com.example.stockgo.Screens.CategoriesScreen
 import com.example.stockgo.Screens.DashboardScreen
 import com.example.stockgo.Screens.EntradasScreen
+import com.example.stockgo.Screens.HistorialScreen
 import com.example.stockgo.Screens.LoginScreen
 import com.example.stockgo.Screens.MoreOptionsScreen
 import com.example.stockgo.Screens.ProductsScreen
@@ -31,8 +31,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+
             var pantallaActual by remember {
                 mutableStateOf("Login")
+            }
+
+            // Preferencia global de notificaciones
+            var notificacionesActivadas by remember {
+                mutableStateOf(true)
             }
 
             val productos = remember {
@@ -72,146 +78,194 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf<Usuario?>(null)
             }
 
-            when (pantallaActual) {
+            val esAdministrador = usuarioActual?.rol
+                ?.equals("Administrador", ignoreCase = true) == true
 
-                "Login" -> {
-                    LoginScreen(
-                        usuarios = usuarios,
-                        onLoginSuccess = { usuario ->
-                            usuarioActual = usuario
-                            pantallaActual = "Inicio"
-                        }
+            MaterialTheme(
+                colorScheme = lightColorScheme()
+            ) {
+
+                // Navegación centralizada
+                val navegarA: (String) -> Unit = { destino ->
+
+                    val pantallasRestringidas = listOf(
+                        "Categorias",
+                        "Usuarios"
                     )
-                }
 
-                "Inicio" -> {
-                    DashboardScreen(
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Productos" -> {
-                    ProductsScreen(
-                        productos = productos,
-                        categorias = categorias,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Categorias" -> {
-                    CategoriesScreen(
-                        categorias = categorias,
-                        productos = productos,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Entradas" -> {
-                    EntradasScreen(
-                        productos = productos,
-                        movimientos = movimientos,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Salidas" -> {
-                    SalidasScreen(
-                        productos = productos,
-                        movimientos = movimientos,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Reportes" -> {
-                    ReportsScreen(
-                        productos = productos,
-                        movimientos = movimientos,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Más" -> {
-                    MoreOptionsScreen(
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
-
-                "Perfil", "Configuracion" -> {
-                    val usuario = usuarioActual
-
-                    if (usuario != null) {
-                        ProfileScreen(
-                            usuario = usuario,
-                            onActualizarPerfil = { nombre, correo ->
-                                val indice = usuarios.indexOfFirst {
-                                    it.id == usuario.id
-                                }
-
-                                if (indice != -1) {
-                                    val actualizado = usuarios[indice].copy(
-                                        nombre = nombre,
-                                        correo = correo
-                                    )
-
-                                    usuarios[indice] = actualizado
-                                    usuarioActual = actualizado
-                                }
-                            },
-                            onLogout = {
-                                usuarioActual = null
-                                pantallaActual = "Login"
-                            },
-                            onNavigate = { destino ->
-                                pantallaActual = destino
-                            }
-                        )
+                    if (destino in pantallasRestringidas && !esAdministrador) {
+                        pantallaActual = "Inicio"
+                    } else {
+                        pantallaActual = destino
                     }
                 }
 
-                "Usuarios" -> {
-                    UsersScreen(
-                        usuarios = usuarios,
-                        usuarioActual = usuarioActual,
-                        onNavigate = { destino ->
-                            pantallaActual = destino
-                        }
-                    )
-                }
+                when (pantallaActual) {
 
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Pantalla: $pantallaActual",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-
-                        Button(
-                            onClick = {
+                    "Login" -> {
+                        LoginScreen(
+                            onLoginSuccess = { usuario ->
+                                usuarioActual = usuario
                                 pantallaActual = "Inicio"
-                            },
-                            modifier = Modifier.padding(top = 16.dp)
+                            }
+                        )
+                    }
+
+                    "Inicio" -> {
+                        DashboardScreen(
+                            productos = productos,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Productos" -> {
+                        ProductsScreen(
+                            productos = productos,
+                            categorias = categorias,
+                            esAdministrador = esAdministrador,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Categorias" -> {
+                        if (esAdministrador) {
+                            CategoriesScreen(
+                                categorias = categorias,
+                                productos = productos,
+                                onNavigate = navegarA
+                            )
+                        } else {
+                            pantallaActual = "Inicio"
+                        }
+                    }
+
+                    "Entradas" -> {
+                        EntradasScreen(
+                            productos = productos,
+                            movimientos = movimientos,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Salidas" -> {
+                        SalidasScreen(
+                            productos = productos,
+                            movimientos = movimientos,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Historial" -> {
+                        HistorialScreen(
+                            movimientos = movimientos,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Reportes" -> {
+                        ReportsScreen(
+                            productos = productos,
+                            movimientos = movimientos,
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Más" -> {
+                        MoreOptionsScreen(
+                            rol = usuarioActual?.rol ?: "Empleado",
+                            onNavigate = navegarA
+                        )
+                    }
+
+                    "Perfil", "Configuracion" -> {
+
+                        val usuario = usuarioActual
+
+                        if (usuario != null) {
+
+                            ProfileScreen(
+                                usuario = usuario,
+
+                                onActualizarPerfil = { nombre, correo ->
+
+                                    val indice = usuarios.indexOfFirst {
+                                        it.id == usuario.id
+                                    }
+
+                                    if (indice != -1) {
+                                        val actualizado = usuarios[indice].copy(
+                                            nombre = nombre,
+                                            correo = correo
+                                        )
+
+                                        usuarios[indice] = actualizado
+                                        usuarioActual = actualizado
+                                    }
+                                },
+
+                                onLogout = {
+                                    usuarioActual = null
+                                    pantallaActual = "Login"
+                                },
+
+                                onNavigate = navegarA,
+
+                                notificaciones = notificacionesActivadas,
+
+                                onNotificacionesChange = {
+                                    notificacionesActivadas = it
+                                },
+
+                                correoDisponible = { correo ->
+
+                                    usuarios.none {
+                                        it.id != usuario.id &&
+                                                it.correo.equals(
+                                                    correo.trim(),
+                                                    ignoreCase = true
+                                                )
+                                    }
+                                }
+                            )
+
+                        } else {
+                            pantallaActual = "Login"
+                        }
+                    }
+
+                    "Usuarios" -> {
+                        if (esAdministrador) {
+                            UsersScreen(
+                                usuarios = usuarios,
+                                usuarioActual = usuarioActual,
+                                onNavigate = navegarA
+                            )
+                        } else {
+                            pantallaActual = "Inicio"
+                        }
+                    }
+
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Volver al inicio")
+                            Text(
+                                text = "Pantalla: $pantallaActual",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+
+                            Button(
+                                onClick = {
+                                    pantallaActual = "Inicio"
+                                },
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) {
+                                Text("Volver al inicio")
+                            }
                         }
                     }
                 }

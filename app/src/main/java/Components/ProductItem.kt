@@ -1,3 +1,4 @@
+
 package com.example.stockgo.Components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import java.util.Locale
 @Composable
 fun ProductItem(
     producto: Producto,
+    esAdministrador: Boolean,
     onEliminar: () -> Unit,
     onEditar: () -> Unit = {}
 ) {
@@ -62,7 +64,6 @@ fun ProductItem(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-
             Text(
                 text = producto.nombre,
                 fontSize = 16.sp,
@@ -110,22 +111,24 @@ fun ProductItem(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onEditar) {
-                    Text(
-                        text = "Editar",
-                        color = Color(0xFF3044B5)
-                    )
-                }
+            if (esAdministrador) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onEditar) {
+                        Text(
+                            text = "Editar",
+                            color = Color(0xFF3044B5)
+                        )
+                    }
 
-                TextButton(onClick = onEliminar) {
-                    Text(
-                        text = "Eliminar",
-                        color = Color(0xFFC33B3B)
-                    )
+                    TextButton(onClick = onEliminar) {
+                        Text(
+                            text = "Eliminar",
+                            color = Color(0xFFC33B3B)
+                        )
+                    }
                 }
             }
         }

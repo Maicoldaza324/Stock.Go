@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "654683084759",
+    "project_id": "stockgo-40b0c",
+    "storage_bucket": "stockgo-40b0c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654683084759:android:bbc0d77da7344bbb941d92",
+        "android_client_info": {
+          "package_name": "com.example.stockgo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654683084759-scjlvtartn7k3seu8d8e617lqirmeln6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.stockgo",
+            "certificate_hash": "bd8dd09f63d5928cad02d98ba9da17e2cc0d3630"
+          }
+        },
+        {
+          "client_id": "654683084759-87nc177o3sacnfi34gbonc2mjnbpsk4t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCldFA9FkN2UZjuQg-raMfxPWumNCxdmfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654683084759-87nc177o3sacnfi34gbonc2mjnbpsk4t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,7 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stockgo.Data.CategoriaRepository
 import com.example.stockgo.Model.Producto
+import kotlinx.coroutines.launch
 
 private val AzulCategorias = Color(0xFF3044B5)
 private val FondoCategorias = Color(0xFFF5F7FB)
@@ -25,10 +27,28 @@ fun CategoriesScreen(
     productos: SnapshotStateList<Producto>,
     onNavigate: (String) -> Unit
 ) {
+    val repositorio = remember { CategoriaRepository() }
+    val scope = rememberCoroutineScope()
+
     var mostrarDialogo by remember { mutableStateOf(false) }
     var categoriaEditando by remember { mutableStateOf<String?>(null) }
     var nombreCategoria by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var cargando by remember { mutableStateOf(true) }
+    var procesando by remember { mutableStateOf(false) }
+
+    // Cargar categorías desde Firestore
+    LaunchedEffect(Unit) {
+        try {
+            val resultado = repositorio.obtenerCategorias()
+            categorias.clear()
+            categorias.addAll(resultado)
+        } catch (e: Exception) {
+            error = e.localizedMessage ?: "No se pudieron cargar las categorías."
+        } finally {
+            cargando = false
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -49,6 +69,7 @@ fun CategoriesScreen(
             )
 
             Button(
+                enabled = !procesando,
                 onClick = {
                     categoriaEditando = null
                     nombreCategoria = ""
@@ -70,7 +91,11 @@ fun CategoriesScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (categorias.isEmpty()) {
+        if (cargando) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        } else if (categorias.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -124,6 +149,7 @@ fun CategoriesScreen(
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 TextButton(
+                                    enabled = !procesando,
                                     onClick = {
                                         categoriaEditando = categoria
                                         nombreCategoria = categoria
@@ -135,6 +161,7 @@ fun CategoriesScreen(
                                 }
 
                                 TextButton(
+                                    enabled = !procesando,
                                     onClick = {
                                         val tieneProductos = productos.any {
                                             it.categoria.equals(
@@ -146,8 +173,19 @@ fun CategoriesScreen(
                                         if (tieneProductos) {
                                             error = "No puedes eliminar una categoría que tiene productos asociados."
                                         } else {
-                                            categorias.remove(categoria)
-                                            error = ""
+                                            scope.launch {
+                                                procesando = true
+                                                try {
+                                                    repositorio.eliminarCategoria(categoria)
+                                                    categorias.remove(categoria)
+                                                    error = ""
+                                                } catch (e: Exception) {
+                                                    error = e.localizedMessage
+                                                        ?: "No se pudo eliminar la categoría."
+                                                } finally {
+                                                    procesando = false
+                                                }
+                                            }
                                         }
                                     }
                                 ) {
@@ -161,6 +199,12 @@ fun CategoriesScreen(
                     }
                 }
             }
+        }
+
+        if (procesando) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         if (error.isNotBlank() && !mostrarDialogo) {
@@ -184,7 +228,9 @@ fun CategoriesScreen(
 
     if (mostrarDialogo) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogo = false },
+            onDismissRequest = {
+                if (!procesando) mostrarDialogo = false
+            },
             title = {
                 Text(
                     if (categoriaEditando == null) {
@@ -204,6 +250,7 @@ fun CategoriesScreen(
                         },
                         label = { Text("Nombre de la categoría") },
                         singleLine = true,
+                        enabled = !procesando,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -219,6 +266,7 @@ fun CategoriesScreen(
             },
             confirmButton = {
                 TextButton(
+                    enabled = !procesando,
                     onClick = {
                         val nombre = nombreCategoria.trim()
 
@@ -229,52 +277,77 @@ fun CategoriesScreen(
 
                             categorias.any {
                                 it.equals(nombre, ignoreCase = true) &&
-                                        !it.equals(categoriaEditando, ignoreCase = true)
+                                        !it.equals(
+                                            categoriaEditando,
+                                            ignoreCase = true
+                                        )
                             } -> {
                                 error = "Ya existe una categoría con ese nombre."
                             }
 
                             else -> {
-                                if (categoriaEditando == null) {
-                                    categorias.add(nombre)
-                                } else {
-                                    val indice = categorias.indexOfFirst {
-                                        it.equals(
-                                            categoriaEditando,
-                                            ignoreCase = true
-                                        )
-                                    }
+                                scope.launch {
+                                    procesando = true
+                                    error = ""
 
-                                    if (indice != -1) {
-                                        categorias[indice] = nombre
+                                    try {
+                                        val anterior = categoriaEditando
 
-                                        productos.indices.forEach { i ->
-                                            if (productos[i].categoria.equals(
-                                                    categoriaEditando,
+                                        if (anterior == null) {
+                                            repositorio.crearCategoria(nombre)
+                                            categorias.add(nombre)
+                                        } else {
+                                            repositorio.actualizarCategoria(
+                                                nombreAnterior = anterior,
+                                                nombreNuevo = nombre
+                                            )
+
+                                            val indice = categorias.indexOfFirst {
+                                                it.equals(
+                                                    anterior,
                                                     ignoreCase = true
                                                 )
-                                            ) {
-                                                productos[i] = productos[i].copy(
-                                                    categoria = nombre
-                                                )
+                                            }
+
+                                            if (indice != -1) {
+                                                categorias[indice] = nombre
+                                            }
+
+                                            productos.indices.forEach { i ->
+                                                if (productos[i].categoria.equals(
+                                                        anterior,
+                                                        ignoreCase = true
+                                                    )
+                                                ) {
+                                                    productos[i] =
+                                                        productos[i].copy(
+                                                            categoria = nombre
+                                                        )
+                                                }
                                             }
                                         }
+
+                                        mostrarDialogo = false
+                                    } catch (e: Exception) {
+                                        error = e.localizedMessage
+                                            ?: "No se pudo guardar la categoría."
+                                    } finally {
+                                        procesando = false
                                     }
                                 }
-
-                                mostrarDialogo = false
-                                error = ""
                             }
                         }
                     }
                 ) {
                     Text(
-                        if (categoriaEditando == null) "Crear" else "Guardar"
+                        if (procesando) "Guardando..." else
+                            if (categoriaEditando == null) "Crear" else "Guardar"
                     )
                 }
             },
             dismissButton = {
                 TextButton(
+                    enabled = !procesando,
                     onClick = { mostrarDialogo = false }
                 ) {
                     Text("Cancelar")

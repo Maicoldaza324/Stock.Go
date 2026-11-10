@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -14,28 +15,121 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stockgo.Auth.FirebaseAuthManager
+import com.example.stockgo.Data.UsuarioRepository
 import com.example.stockgo.Model.Usuario
+import kotlinx.coroutines.launch
 
 private val AzulStock = Color(0xFF3044B5)
 private val FondoStock = Color(0xFFF5F7FB)
 
 @Composable
 fun LoginScreen(
-    usuarios: List<Usuario>,
     onLoginSuccess: (Usuario) -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var mostrarContrasena by remember { mutableStateOf(false) }
     var mensaje by remember { mutableStateOf("") }
-
     var esError by remember { mutableStateOf(true) }
+    var cargando by remember { mutableStateOf(false) }
+
+    val authManager = remember { FirebaseAuthManager() }
+    val usuarioRepository = remember { UsuarioRepository() }
+    val scope = rememberCoroutineScope()
+
+    fun iniciarSesion() {
+        val correoIngresado = correo.trim()
+
+        when {
+            correoIngresado.isBlank() || contrasena.isBlank() -> {
+                mensaje = "Ingresa tu correo y contraseña."
+                esError = true
+            }
+
+            !Patterns.EMAIL_ADDRESS.matcher(correoIngresado).matches() -> {
+                mensaje = "Ingresa un correo electrónico válido."
+                esError = true
+            }
+
+            cargando -> return
+
+            else -> {
+                scope.launch {
+                    cargando = true
+                    mensaje = ""
+
+                    try {
+                        // 1. Autenticar con Firebase Authentication
+                        val resultado = authManager.iniciarSesionCorreo(
+                            correoIngresado,
+                            contrasena
+                        )
+
+                        val usuarioFirebase = resultado.user
+
+                        if (usuarioFirebase == null) {
+                            mensaje = "No fue posible obtener tu cuenta."
+                            esError = true
+                            return@launch
+                        }
+
+                        // 2. Consultar el perfil en Firestore
+                        val perfil = usuarioRepository.obtenerUsuario(
+                            usuarioFirebase.uid
+                        )
+
+                        // 3. Validar el perfil
+                        when {
+                            perfil == null -> {
+                                authManager.cerrarSesion()
+                                mensaje = "Tu cuenta no tiene un perfil registrado en Stock.Go. Contacta al administrador."
+                                esError = true
+                            }
+
+                            !perfil.activo -> {
+                                authManager.cerrarSesion()
+                                mensaje = "Tu cuenta está inactiva. Contacta al administrador."
+                                esError = true
+                            }
+
+                            else -> {
+                                mensaje = ""
+                                esError = false
+                                onLoginSuccess(perfil)
+                            }
+                        }
+
+                    } catch (e: Exception) {
+                        mensaje = when {
+                            e.message?.contains(
+                                "password",
+                                ignoreCase = true
+                            ) == true -> "Correo o contraseña incorrectos."
+
+                            e.message?.contains(
+                                "network",
+                                ignoreCase = true
+                            ) == true -> "No hay conexión. Verifica tu internet."
+
+                            else -> "No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente."
+                        }
+                        esError = true
+
+                    } finally {
+                        cargando = false
+                    }
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -144,10 +238,12 @@ fun LoginScreen(
                         placeholder = {
                             Text("admin@stockgo.com")
                         },
+                        enabled = !cargando,
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
                         )
                     )
                 }
@@ -171,6 +267,7 @@ fun LoginScreen(
                         placeholder = {
                             Text("Ingresa tu contraseña")
                         },
+                        enabled = !cargando,
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         visualTransformation = if (mostrarContrasena) {
@@ -179,13 +276,18 @@ fun LoginScreen(
                             PasswordVisualTransformation()
                         },
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { iniciarSesion() }
                         ),
                         trailingIcon = {
                             TextButton(
                                 onClick = {
                                     mostrarContrasena = !mostrarContrasena
-                                }
+                                },
+                                enabled = !cargando
                             ) {
                                 Text(
                                     if (mostrarContrasena) "Ocultar"
@@ -205,7 +307,8 @@ fun LoginScreen(
                         onClick = {
                             mensaje = "La recuperación de contraseña se implementará posteriormente."
                             esError = false
-                        }
+                        },
+                        enabled = !cargando
                     ) {
                         Text(
                             text = "¿Olvidaste tu contraseña?",
@@ -215,52 +318,8 @@ fun LoginScreen(
                 }
 
                 Button(
-                    onClick = {
-                        val correoIngresado = correo.trim()
-
-                        when {
-                            correoIngresado.isBlank() || contrasena.isBlank() -> {
-                                mensaje = "Ingresa tu correo y contraseña."
-                                esError = true
-                            }
-
-                            !Patterns.EMAIL_ADDRESS.matcher(correoIngresado).matches() -> {
-                                mensaje = "Ingresa un correo electrónico válido."
-                                esError = true
-                            }
-
-                            else -> {
-                                val usuario = usuarios.find {
-                                    it.correo.equals(
-                                        correoIngresado,
-                                        ignoreCase = true
-                                    )
-                                }
-
-                                when {
-                                    usuario == null -> {
-                                        mensaje = "No existe un usuario con ese correo."
-                                        esError = true
-                                    }
-
-                                    !usuario.activo -> {
-                                        mensaje = "Tu cuenta está inactiva. Contacta al administrador."
-                                        esError = true
-                                    }
-
-                                    usuario.contrasena != contrasena -> {
-                                        mensaje = "La contraseña es incorrecta."
-                                        esError = true
-                                    }
-
-                                    else -> {
-                                        mensaje = ""
-                                        onLoginSuccess(usuario)
-                                    }
-                                }
-                            }
-                        }
-                    },
+                    onClick = { iniciarSesion() },
+                    enabled = !cargando,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
@@ -269,11 +328,19 @@ fun LoginScreen(
                         containerColor = Color(0xFF465DE0)
                     )
                 ) {
-                    Text(
-                        text = "Iniciar sesión",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Iniciar sesión",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 if (mensaje.isNotBlank()) {
