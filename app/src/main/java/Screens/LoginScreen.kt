@@ -22,9 +22,20 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+
 import com.example.stockgo.Auth.FirebaseAuthManager
 import com.example.stockgo.Data.UsuarioRepository
 import com.example.stockgo.Model.Usuario
+import com.example.stockgo.R
+
 import kotlinx.coroutines.launch
 
 private val AzulStock = Color(0xFF3044B5)
@@ -34,6 +45,8 @@ private val FondoStock = Color(0xFFF5F7FB)
 fun LoginScreen(
     onLoginSuccess: (Usuario) -> Unit
 ) {
+    val contexto = LocalContext.current
+
     var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var mostrarContrasena by remember { mutableStateOf(false) }
@@ -43,7 +56,15 @@ fun LoginScreen(
 
     val authManager = remember { FirebaseAuthManager() }
     val usuarioRepository = remember { UsuarioRepository() }
+    val credentialManager = remember {
+        CredentialManager.create(contexto)
+    }
+
     val scope = rememberCoroutineScope()
+
+    // ==========================================
+    // INICIO DE SESIÓN CON CORREO Y CONTRASEÑA
+    // ==========================================
 
     fun iniciarSesion() {
         val correoIngresado = correo.trim()
@@ -67,7 +88,6 @@ fun LoginScreen(
                     mensaje = ""
 
                     try {
-                        // 1. Autenticar con Firebase Authentication
                         val resultado = authManager.iniciarSesionCorreo(
                             correoIngresado,
                             contrasena
@@ -81,12 +101,10 @@ fun LoginScreen(
                             return@launch
                         }
 
-                        // 2. Consultar el perfil en Firestore
                         val perfil = usuarioRepository.obtenerUsuario(
                             usuarioFirebase.uid
                         )
 
-                        // 3. Validar el perfil
                         when {
                             perfil == null -> {
                                 authManager.cerrarSesion()
@@ -121,6 +139,7 @@ fun LoginScreen(
 
                             else -> "No se pudo iniciar sesión. Verifica tus datos e inténtalo nuevamente."
                         }
+
                         esError = true
 
                     } finally {
@@ -130,6 +149,154 @@ fun LoginScreen(
             }
         }
     }
+
+    // ==========================================
+    // INICIO DE SESIÓN Y REGISTRO CON GOOGLE
+    // ==========================================
+
+    fun iniciarSesionGoogle() {
+        if (cargando) return
+
+        scope.launch {
+            cargando = true
+            mensaje = ""
+
+            try {
+                // 1. Configurar Google Credential Manager.
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(
+                        contexto.getString(R.string.default_web_client_id)
+                    )
+                    .setAutoSelectEnabled(false)
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                // 2. Mostrar selector de cuentas Google.
+                val resultado = credentialManager.getCredential(
+                    context = contexto,
+                    request = request
+                )
+
+                val credential = resultado.credential
+
+                // 3. Obtener el token de Google.
+                if (
+                    credential !is CustomCredential ||
+                    credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    throw IllegalStateException(
+                        "No se pudo obtener una credencial válida de Google."
+                    )
+                }
+
+                val googleCredential =
+                    GoogleIdTokenCredential.createFrom(credential.data)
+
+                // 4. Autenticar con Firebase.
+                val resultadoFirebase = authManager.iniciarSesionGoogle(
+                    googleCredential.idToken
+                )
+
+                val usuarioFirebase = resultadoFirebase.user
+                    ?: throw IllegalStateException(
+                        "No se pudo obtener el usuario de Firebase."
+                    )
+
+                // 5. Buscar si ya existe un perfil.
+                var perfil = usuarioRepository.obtenerUsuario(
+                    usuarioFirebase.uid
+                )
+
+                if (perfil == null) {
+
+                    // 6. Crear perfil nuevo como empleado.
+                    // No consultamos toda la colección de usuarios:
+                    // las reglas permiten al usuario leer únicamente su perfil.
+
+                    val nombre = usuarioFirebase.displayName
+                        ?.takeIf { it.isNotBlank() }
+                        ?: usuarioFirebase.email
+                            ?.substringBefore("@")
+                        ?: "Usuario Google"
+
+                    val correoGoogle = usuarioFirebase.email
+                        ?: throw IllegalStateException(
+                            "La cuenta de Google no tiene un correo disponible."
+                        )
+
+                    val nuevoId = (
+                            System.currentTimeMillis() % Int.MAX_VALUE
+                            ).toInt()
+
+                    val nuevoUsuario = Usuario(
+                        id = nuevoId,
+                        uid = usuarioFirebase.uid,
+                        nombre = nombre,
+                        correo = correoGoogle,
+                        contrasena = "",
+                        rol = "Empleado",
+                        activo = true
+                    )
+
+                    // 7. Guardar perfil en Firestore.
+                    usuarioRepository.guardarUsuario(nuevoUsuario)
+
+                    perfil = nuevoUsuario
+                }
+
+                // 8. Comprobar el estado de la cuenta.
+                if (!perfil.activo) {
+                    authManager.cerrarSesion()
+
+                    mensaje = "Tu cuenta está inactiva. Contacta al administrador."
+                    esError = true
+
+                    return@launch
+                }
+
+                // 9. Acceso permitido.
+                mensaje = ""
+                esError = false
+
+                onLoginSuccess(perfil)
+
+            } catch (e: Exception) {
+
+                // Evitar dejar una sesión abierta si falla
+                // la creación o consulta del perfil.
+                authManager.cerrarSesion()
+
+                mensaje = when {
+                    e.message?.contains(
+                        "cancel",
+                        ignoreCase = true
+                    ) == true -> "Inicio de sesión cancelado."
+
+                    e.message?.contains(
+                        "network",
+                        ignoreCase = true
+                    ) == true -> "No hay conexión. Verifica tu internet."
+
+                    else -> "No se pudo iniciar sesión con Google: ${
+                        e.localizedMessage ?: "Inténtalo nuevamente."
+                    }"
+                }
+
+                esError = true
+
+            } finally {
+                cargando = false
+            }
+        }
+    }
+
+    // ==========================================
+    // INTERFAZ
+    // ==========================================
 
     Column(
         modifier = Modifier
@@ -219,6 +386,7 @@ fun LoginScreen(
                     color = Color(0xFF858B98)
                 )
 
+                // CORREO
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -248,6 +416,7 @@ fun LoginScreen(
                     )
                 }
 
+                // CONTRASEÑA
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -299,6 +468,7 @@ fun LoginScreen(
                     )
                 }
 
+                // RECUPERAR CONTRASEÑA
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.CenterEnd
@@ -317,6 +487,7 @@ fun LoginScreen(
                     }
                 }
 
+                // BOTÓN INICIAR SESIÓN
                 Button(
                     onClick = { iniciarSesion() },
                     enabled = !cargando,
@@ -343,6 +514,65 @@ fun LoginScreen(
                     }
                 }
 
+                // SEPARADOR
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color.LightGray
+                    )
+
+                    Text(
+                        text = "  O continúa con  ",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = Color.LightGray
+                    )
+                }
+
+                // BOTÓN GOOGLE
+                OutlinedButton(
+                    onClick = { iniciarSesionGoogle() },
+                    enabled = !cargando,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF202536)
+                    )
+                ) {
+                    if (cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = AzulStock
+                        )
+                    } else {
+                        Text(
+                            text = "G",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4285F4)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Text(
+                            text = "Continuar con Google",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                // MENSAJES
                 if (mensaje.isNotBlank()) {
                     Text(
                         text = mensaje,
