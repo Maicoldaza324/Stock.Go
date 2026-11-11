@@ -4,7 +4,7 @@ La aplicación contará con las siguientes pantallas y sus respectivos diseños 
 
 ## Pantalla 1: Inicio de sesión
 Permite al usuario ingresar al sistema mediante su correo electrónico y contraseña. También cuenta con una opción para recuperar la contraseña.
-![Login](./Mockups/Login.jpeg)
+
 
 ## Pantalla 2: Dashboard
 Presenta un resumen general del inventario, mostrando el total de productos, productos disponibles, productos con bajo stock y productos agotados. También incluye alertas, acciones rápidas y movimientos recientes.
