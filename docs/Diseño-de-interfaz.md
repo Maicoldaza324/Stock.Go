@@ -12,11 +12,11 @@ Presenta un resumen general del inventario, mostrando el total de productos, pro
 
 ## Pantalla 3: Registrar entrada
 Permite registrar el ingreso de productos al inventario mediante información como producto, cantidad, proveedor, fecha y observaciones.
-![Registrar Entrada](./Mockups/Registrar-entrada.jpeg)
+![Registrar Entrada](./Mockups/Registrar-entradas.jpg)
 
 ## Pantalla 4: Registrar salida
 Permite registrar la salida de productos del inventario indicando el producto, cantidad, motivo, fecha y observaciones.
-![Registrar Salida](./Mockups/Registrar-salida.jpeg)
+![Registrar Salida](./Mockups/Registrar-salidas.jpg)
 
 ## Pantalla 5: Reportes
 Visualización de estadísticas y movimientos de stock del sistema.
