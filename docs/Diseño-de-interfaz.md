@@ -28,7 +28,7 @@ Permite consultar y administrar la información del usuario, editar el perfil, c
 
 ## Pantalla 7: Más opciones
 Presenta un menú de acceso a diferentes funcionalidades del sistema, como categorías, usuarios, reportes, perfil y configuración, ayuda y cierre de sesión.
-![Más Opciones](./Mockups/Mas-opciones.jpeg)
+![Más Opciones](./Mockups/Mas-opciones.jpg)
 
 ## Pantalla 8: Usuarios
 Módulo de administración y control de usuarios con acceso a la plataforma.
