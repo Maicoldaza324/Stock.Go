@@ -20,11 +20,11 @@ Permite registrar la salida de productos del inventario indicando el producto, c
 
 ## Pantalla 5: Reportes
 Visualización de estadísticas y movimientos de stock del sistema.
-![Reportes](./Mockups/Reportes.jpeg)
+![Reportes](./Mockups/Reportes.jpg)
 
 ## Pantalla 6: Perfil y configuración
 Permite consultar y administrar la información del usuario, editar el perfil, cambiar la contraseña, configurar preferencias y cerrar sesión.
-![Perfil y Configuración](./Mockups/Perfil-y-configuracion.jpeg)
+![Perfil y Configuración](./Mockups/Perfil-y-configuracion.jpg)
 
 ## Pantalla 7: Más opciones
 Presenta un menú de acceso a diferentes funcionalidades del sistema, como categorías, usuarios, reportes, perfil y configuración, ayuda y cierre de sesión.
