@@ -32,4 +32,4 @@ Presenta un menú de acceso a diferentes funcionalidades del sistema, como categ
 
 ## Pantalla 8: Usuarios
 Módulo de administración y control de usuarios con acceso a la plataforma.
-![Usuarios](./Mockups/Usuarios.jpeg)
+![Usuarios](./Mockups/Usuarios.jpg)
