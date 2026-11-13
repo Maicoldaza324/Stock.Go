@@ -6,11 +6,14 @@ La aplicación contará con las siguientes pantallas y sus respectivos diseños 
 Permite al usuario ingresar al sistema mediante su correo electrónico y contraseña. También cuenta con una opción para recuperar la contraseña.
 
 Datos de inicio de sesion:
+
 Rol: Adminitrador
+
 Correo:Admin@stockgo.com
 Contraseña: Admin123*
 
 Rol: Empleado
+
 Correo: empleado1@stockgo.com
 Contraseña: Empleado123*
 
