@@ -7,7 +7,7 @@ Permite al usuario ingresar al sistema mediante su correo electrónico y contras
 
 Datos de inicio de sesion:
 
-Rol: Adminitrador
+Rol: Administrador
 
 Correo:Admin@stockgo.com
 Contraseña: Admin123*
