@@ -50,7 +50,8 @@ consulta y control de productos y movimientos de inventario.
 -   Kotlin
 -   Android Studio
 -   Jetpack Compose
--   Room / SQLite
+-   Firebase Authentication
+-   Cloud Firestore
 
 ## Usuarios objetivo
 
